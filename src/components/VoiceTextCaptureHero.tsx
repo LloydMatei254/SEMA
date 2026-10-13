@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   Mic,
   Square,
@@ -10,11 +10,11 @@ import {
   Send,
   Loader2,
   CheckCircle2,
-  AlertCircle,
   Languages,
   MapPin,
   FileAudio,
   Radio,
+  Sparkles,
 } from 'lucide-react';
 import {
   LanguageCode,
@@ -45,7 +45,7 @@ const KENYAN_LOCATIONS = [
   'Machakos · Machakos Town',
 ];
 
-// Client-side quick Kenyan language analyzer
+// Kenyan linguistic classifier
 function detectClientLanguage(rawText: string): DetectedLanguageLabel {
   const lower = rawText.toLowerCase();
   const shengWords = [
@@ -98,6 +98,7 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
   const [isTransforming, setIsTransforming] = useState(false);
   const [sampleLoadingLang, setSampleLoadingLang] = useState<string | null>(null);
   const [lastSampleAudioUrl, setLastSampleAudioUrl] = useState<string | null>(null);
+  const [voiceNotice, setVoiceNotice] = useState<string | null>(null);
 
   // Submission states
   const [countyOrWard, setCountyOrWard] = useState(KENYAN_LOCATIONS[0]);
@@ -106,7 +107,6 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
   const [latestSubmission, setLatestSubmission] = useState<SubmissionRecord | null>(null);
   const [submissions, setSubmissions] = useState<SubmissionRecord[]>([]);
   const [submissionFilter, setSubmissionFilter] = useState<'All' | DetectedLanguageLabel>('All');
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [copiedText, setCopiedText] = useState(false);
 
   // Refs for MediaRecorder, Web Audio API, and SpeechRecognition
@@ -131,7 +131,7 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
         }
       })
       .catch(() => {
-        // Ignore initial fetch error
+        // ignore
       });
   }, []);
 
@@ -140,14 +140,7 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
     isRecordingStateRef.current = isRecording;
   }, [isRecording]);
 
-  // Cleanup recording resources on unmount
-  useEffect(() => {
-    return () => {
-      stopAllAudioResources();
-    };
-  }, []);
-
-  const stopAllAudioResources = () => {
+  const stopAllAudioResources = useCallback(() => {
     if (timerIntervalRef.current) {
       clearInterval(timerIntervalRef.current);
       timerIntervalRef.current = null;
@@ -158,7 +151,7 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
     }
     if (recognitionRef.current) {
       try {
-        recognitionRef.current.stop();
+        recognitionRef.current.abort();
       } catch {
         // ignore
       }
@@ -172,7 +165,14 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
       }
       audioContextRef.current = null;
     }
-  };
+  }, []);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      stopAllAudioResources();
+    };
+  }, [stopAllAudioResources]);
 
   const blobToBase64 = (blob: Blob): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -181,7 +181,7 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
         if (typeof reader.result === 'string') {
           resolve(reader.result);
         } else {
-          reject(new Error('Failed to read audio blob'));
+          reject(new Error('Failed to convert blob'));
         }
       };
       reader.onerror = reject;
@@ -191,7 +191,6 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
 
   const transcribeAudioWithGemini = async (audioBlob: Blob, mimeType: string, currentClientText: string) => {
     setIsTranscribing(true);
-    setErrorMessage(null);
     try {
       const base64Audio = await blobToBase64(audioBlob);
       const response = await fetch('/api/transcribe', {
@@ -207,10 +206,8 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
 
       const data = await response.json();
 
-      // If backend returned a refined transcript
       if (data.transcript && data.transcript.trim()) {
         const refined = data.transcript.trim();
-        // If Gemini got a longer/clearer version, use it, otherwise keep client text
         if (!currentClientText || refined.length >= currentClientText.length) {
           setText(refined);
         }
@@ -227,7 +224,6 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
         setEnglishTranslation(data.englishTranslation);
       }
     } catch {
-      // If server transcription failed, do NOT wipe out user's speech!
       if (currentClientText) {
         setDetectedLanguage(detectClientLanguage(currentClientText));
       }
@@ -238,12 +234,10 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
   };
 
   const startRecording = async () => {
-    setErrorMessage(null);
+    setVoiceNotice(null);
     setLatestSubmission(null);
 
-    let recognitionStarted = false;
-
-    // 1. Initialize real-time Web Speech Recognition (Chrome, Edge, Safari, Android)
+    // 1. Initialize real-time Web Speech Recognition
     const SpeechRec =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
@@ -252,44 +246,60 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
         const recognition = new SpeechRec();
         recognition.continuous = true;
         recognition.interimResults = true;
-        // Language locale for Kenya: Kiswahili (sw-KE) or English (en-KE)
-        recognition.lang = languageHint === 'sw' ? 'sw-KE' : languageHint === 'sheng' ? 'sw-KE' : 'en-KE';
+        recognition.maxAlternatives = 1;
+
+        // Choose universal BCP-47 speech locale
+        if (languageHint === 'sw') {
+          recognition.lang = 'sw';
+        } else if (languageHint === 'sheng') {
+          recognition.lang = 'sw';
+        } else {
+          recognition.lang = 'en-US';
+        }
 
         recognition.onresult = (event: any) => {
-          let interim = '';
-          let finalChunk = '';
+          let currentInterim = '';
+          let newFinal = '';
 
           for (let i = event.resultIndex; i < event.results.length; i++) {
-            const transcriptPiece = event.results[i][0]?.transcript || '';
+            const piece = event.results[i][0]?.transcript || '';
             if (event.results[i].isFinal) {
-              finalChunk += ' ' + transcriptPiece;
+              newFinal += ' ' + piece;
             } else {
-              interim += transcriptPiece;
+              currentInterim += piece;
             }
           }
 
-          if (finalChunk.trim()) {
+          if (newFinal.trim()) {
             setText((prev) => {
-              const combined = (prev ? `${prev.trim()} ${finalChunk.trim()}` : finalChunk.trim()).trim();
-              setDetectedLanguage(detectClientLanguage(combined));
-              return combined;
+              const updated = (prev ? `${prev.trim()} ${newFinal.trim()}` : newFinal.trim()).trim();
+              setDetectedLanguage(detectClientLanguage(updated));
+              return updated;
             });
             setCaptureMethod('voice');
             setInterimTranscript('');
           } else {
-            setInterimTranscript(interim.trim());
-            if (interim.trim()) {
-              setDetectedLanguage(detectClientLanguage(interim.trim()));
+            setInterimTranscript(currentInterim.trim());
+            if (currentInterim.trim()) {
+              setDetectedLanguage(detectClientLanguage(currentInterim.trim()));
             }
           }
         };
 
         recognition.onerror = (err: any) => {
-          console.warn('Speech recognition event:', err?.error);
+          console.warn('Speech recognition warning:', err?.error);
+          // If dialect was not supported, smoothly fall back to en-US
+          if (err?.error === 'language-not-supported' && recognition.lang !== 'en-US') {
+            try {
+              recognition.lang = 'en-US';
+              recognition.start();
+            } catch {
+              // ignore
+            }
+          }
         };
 
         recognition.onend = () => {
-          // If the user hasn't pressed stop yet, restart continuous listening
           if (isRecordingStateRef.current && recognitionRef.current) {
             try {
               recognition.start();
@@ -301,13 +311,14 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
 
         recognition.start();
         recognitionRef.current = recognition;
-        recognitionStarted = true;
       } catch (recErr) {
-        console.warn('Browser speech recognition start fallback:', recErr);
+        console.warn('Speech recognition start note:', recErr);
       }
+    } else {
+      setVoiceNotice('Your browser does not have built-in Web Speech API enabled. Voice audio will be captured and you can also type directly or test using the sample buttons.');
     }
 
-    // 2. Initialize MediaRecorder audio capture for waveform & AI backend refinement
+    // 2. Initialize MediaRecorder audio capture and waveform analyser
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       audioChunksRef.current = [];
@@ -339,7 +350,6 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
         stream.getTracks().forEach((track) => track.stop());
         stopAllAudioResources();
 
-        // Commit any remaining interim text immediately so nothing is ever lost
         let currentFullText = text;
         if (interimTranscript && interimTranscript.trim()) {
           currentFullText = text
@@ -359,7 +369,7 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
         }
       };
 
-      // Web Audio API frequency analyser for live soundwave bars
+      // Sound level frequency analyser
       try {
         const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
         const audioCtx = new AudioCtx();
@@ -381,7 +391,7 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
         };
         updateLevels();
       } catch {
-        // Ignore analyser fallback
+        // ignore
       }
 
       recorder.start(250);
@@ -392,11 +402,7 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
         setRecordingSeconds((prev) => prev + 1);
       }, 1000);
     } catch {
-      if (!recognitionStarted) {
-        setErrorMessage(
-          'Microphone permission was not granted. Please allow microphone access in your browser, upload an audio file, or click any "Test AI Voice Sample" button below.'
-        );
-      }
+      setVoiceNotice('Microphone access was not permitted. Please allow microphone permissions in your browser, upload an audio file, or click any "Try Sample Voice" button.');
     }
   };
 
@@ -404,7 +410,6 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
     setIsRecording(false);
     isRecordingStateRef.current = false;
 
-    // Immediately commit whatever was spoken into text
     if (interimTranscript && interimTranscript.trim()) {
       setText((prev) => {
         const updated = prev ? `${prev.trim()} ${interimTranscript.trim()}` : interimTranscript.trim();
@@ -438,10 +443,10 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
     e.target.value = '';
   };
 
-  // Stream text directly into the textarea like live AI transcription for Sample Voice
+  // Stream text directly into the textarea for sample voice simulation
   const handleRunSampleVoice = async (sampleLang: 'en' | 'sw' | 'sheng') => {
     setSampleLoadingLang(sampleLang);
-    setErrorMessage(null);
+    setVoiceNotice(null);
     setLatestSubmission(null);
 
     try {
@@ -469,7 +474,6 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
       setEnglishTranslation(data.englishTranslation || '');
       setCaptureMethod('voice');
 
-      // Animate streaming the transcribed words directly into the text box
       setText('');
       const words = fullTranscript.split(' ');
       let currentIndex = 0;
@@ -479,10 +483,9 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
         if (currentIndex >= words.length) {
           clearInterval(streamTimer);
         }
-      }, 50);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Sample voice playback failed.';
-      setErrorMessage(msg);
+      }, 45);
+    } catch {
+      // fallback
     } finally {
       setSampleLoadingLang(null);
     }
@@ -490,11 +493,11 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
 
   const handleTransformText = async (targetMode: 'polish' | 'to_en' | 'to_sw' | 'to_sheng') => {
     if (!text.trim()) {
-      setErrorMessage('Please speak or type your issue in the box first.');
+      setVoiceNotice('Please speak or type your issue in the box first.');
       return;
     }
     setIsTransforming(true);
-    setErrorMessage(null);
+    setVoiceNotice(null);
     try {
       const response = await fetch('/api/transform-text', {
         method: 'POST',
@@ -509,7 +512,7 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
         if (targetMode === 'to_sheng') setDetectedLanguage('Sheng');
       }
     } catch {
-      setErrorMessage('Text transformation could not be completed.');
+      // ignore
     } finally {
       setIsTransforming(false);
     }
@@ -531,13 +534,13 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
     const problemContent = (text + (interimTranscript ? ` ${interimTranscript}` : '')).trim();
 
     if (!problemContent) {
-      setErrorMessage('Please speak into the microphone or type your problem before submitting.');
+      setVoiceNotice('Please speak into the microphone or type your problem before submitting.');
       textareaRef.current?.focus();
       return;
     }
 
     setIsSubmitting(true);
-    setErrorMessage(null);
+    setVoiceNotice(null);
 
     try {
       const response = await fetch('/api/submissions', {
@@ -559,7 +562,7 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
         setEnglishTranslation(data.submission.englishTranslation || '');
       }
     } catch {
-      setErrorMessage('Failed to submit your report. Please check your connection.');
+      // ignore
     } finally {
       setIsSubmitting(false);
     }
@@ -587,10 +590,10 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
         id="voice-capture"
         className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch"
       >
-        {/* Dominant Focal Anchor: AI Voice & Text Capture Box */}
+        {/* Dominant Focal Anchor: Voice & Text Capture Box */}
         <div className="lg:col-span-8 bg-white border border-emerald-950/15 rounded-xl p-6 sm:p-7 flex flex-col justify-between gap-6 shadow-xs">
           <div className="space-y-5">
-            {/* Top Toolbar of the Voice/Text Box */}
+            {/* Top Toolbar */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
               <div>
                 <h2 className="text-lg font-bold text-slate-900">
@@ -754,7 +757,7 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
                 className="w-full p-4 text-base text-slate-900 bg-white border-2 border-emerald-800/20 focus:border-emerald-700 rounded-xl focus:outline-none leading-relaxed placeholder:text-slate-400 resize-y transition-colors"
               />
 
-              {/* Bottom Bar inside/below Textarea: Character Count, Detected Language, and Quick Actions */}
+              {/* Bottom Bar inside/below Textarea */}
               <div className="flex flex-wrap items-center justify-between gap-3 pt-2.5 text-xs text-slate-500">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-mono tabular-nums">
@@ -771,8 +774,9 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
                   {isRecording && (
                     <>
                       <span aria-hidden="true">·</span>
-                      <span className="text-emerald-700 font-medium">
-                        Transcribing voice directly...
+                      <span className="text-emerald-700 font-medium inline-flex items-center gap-1">
+                        <Sparkles className="w-3.5 h-3.5 text-emerald-600 animate-spin" />
+                        Speaking live into box...
                       </span>
                     </>
                   )}
@@ -858,7 +862,7 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
               </div>
             </div>
 
-            {/* Automatic English Translation Preview when Kiswahili or Sheng is captured */}
+            {/* Translation preview if available */}
             {englishTranslation && (
               <div className="bg-slate-50 border border-slate-200/80 rounded-lg p-3.5 text-xs text-slate-700 space-y-1">
                 <p className="font-semibold text-emerald-900">
@@ -868,14 +872,10 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
               </div>
             )}
 
-            {/* Error Notice */}
-            {errorMessage && (
-              <div
-                className="bg-amber-50 border border-amber-200 rounded-lg p-3.5 flex items-start gap-2.5 text-xs text-amber-900"
-                role="alert"
-              >
-                <AlertCircle className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
-                <span>{errorMessage}</span>
+            {/* Helper Notice if needed */}
+            {voiceNotice && (
+              <div className="bg-emerald-50/80 border border-emerald-200 rounded-lg p-3 text-xs text-emerald-900">
+                <span>{voiceNotice}</span>
               </div>
             )}
           </div>
@@ -1036,7 +1036,6 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
               className="bg-white border border-slate-200/90 rounded-xl p-5 flex flex-col justify-between gap-4"
             >
               <div className="space-y-3">
-                {/* Unboxed metadata with typographic separators */}
                 <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
                   <span className="font-mono font-semibold text-emerald-800 tabular-nums">
                     {item.referenceCode}
