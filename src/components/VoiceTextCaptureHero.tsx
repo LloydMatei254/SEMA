@@ -232,7 +232,27 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const isRecordingStateRef = useRef<boolean>(false);
 
+  // Persistent live text refs to eliminate stale closure bugs during speech recognition
+  const currentTextRef = useRef<string>('');
+  const interimTranscriptRef = useRef<string>('');
+  const baseTextAtRecordStartRef = useRef<string>('');
+  const sessionFinalTranscriptRef = useRef<string>('');
+  const sessionInterimTranscriptRef = useRef<string>('');
+
   const currentPhrase = TYPEWRITER_PHRASES[activePhraseIndex] || TYPEWRITER_PHRASES[0];
+
+  // Keep refs synchronized with state
+  useEffect(() => {
+    currentTextRef.current = text;
+  }, [text]);
+
+  useEffect(() => {
+    interimTranscriptRef.current = interimTranscript;
+  }, [interimTranscript]);
+
+  useEffect(() => {
+    isRecordingStateRef.current = isRecording;
+  }, [isRecording]);
 
   // Try fetching submissions from backend if available, fallback gracefully
   useEffect(() => {
@@ -254,11 +274,6 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
       });
   }, []);
 
-  // Sync ref with state
-  useEffect(() => {
-    isRecordingStateRef.current = isRecording;
-  }, [isRecording]);
-
   const stopAllAudioResources = useCallback(() => {
     if (timerIntervalRef.current) {
       clearInterval(timerIntervalRef.current);
@@ -270,7 +285,7 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
     }
     if (recognitionRef.current) {
       try {
-        recognitionRef.current.abort();
+        recognitionRef.current.stop();
       } catch {
         // ignore
       }
@@ -330,6 +345,7 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
           const refined = data.transcript.trim();
           if (!currentClientText || refined.length >= currentClientText.length) {
             setText(refined);
+            currentTextRef.current = refined;
           }
           setCaptureMethod((prev) => (prev === 'text' ? 'voice' : 'hybrid'));
         }
@@ -341,19 +357,34 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
         }
       }
     } catch {
-      // Safe fallback
+      // Safe fallback - keep existing text intact
     } finally {
-      if (currentClientText) {
-        setDetectedLanguage(detectClientLanguage(currentClientText));
+      const latest = currentTextRef.current.trim();
+      if (latest) {
+        setDetectedLanguage(detectClientLanguage(latest));
       }
       setIsTranscribing(false);
       setInterimTranscript('');
+      interimTranscriptRef.current = '';
     }
   };
 
   const startRecording = async () => {
     setVoiceNotice(null);
     setLatestSubmission(null);
+
+    // Save current box text as base before new speech
+    const baseText = currentTextRef.current.trim();
+    baseTextAtRecordStartRef.current = baseText;
+    sessionFinalTranscriptRef.current = '';
+    sessionInterimTranscriptRef.current = '';
+
+    setIsRecording(true);
+    isRecordingStateRef.current = true;
+    setRecordingSeconds(0);
+    timerIntervalRef.current = setInterval(() => {
+      setRecordingSeconds((prev) => prev + 1);
+    }, 1000);
 
     // 1. Initialize real-time Web Speech Recognition
     const SpeechRec =
@@ -366,38 +397,47 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
         recognition.interimResults = true;
         recognition.maxAlternatives = 1;
 
+        // Accurate BCP-47 Kenyan language tags
         if (languageHint === 'sw' || languageHint === 'sheng') {
-          recognition.lang = 'sw';
+          recognition.lang = 'sw-KE';
+        } else if (languageHint === 'en') {
+          recognition.lang = 'en-KE';
         } else {
-          recognition.lang = 'en-US';
+          // Default Kenyan Swahili with fallback
+          recognition.lang = 'sw-KE';
         }
 
         recognition.onresult = (event: any) => {
-          let currentInterim = '';
-          let newFinal = '';
+          let sessionFinal = '';
+          let sessionInterim = '';
 
-          for (let i = event.resultIndex; i < event.results.length; i++) {
-            const piece = event.results[i][0]?.transcript || '';
-            if (event.results[i].isFinal) {
-              newFinal += ' ' + piece;
+          for (let i = 0; i < event.results.length; i++) {
+            const item = event.results[i];
+            const piece = item[0]?.transcript || '';
+            if (item.isFinal) {
+              sessionFinal += (sessionFinal ? ' ' : '') + piece.trim();
             } else {
-              currentInterim += piece;
+              sessionInterim += (sessionInterim ? ' ' : '') + piece.trim();
             }
           }
 
-          if (newFinal.trim()) {
-            setText((prev) => {
-              const updated = (prev ? `${prev.trim()} ${newFinal.trim()}` : newFinal.trim()).trim();
-              setDetectedLanguage(detectClientLanguage(updated));
-              return updated;
-            });
+          sessionFinalTranscriptRef.current = sessionFinal;
+          sessionInterimTranscriptRef.current = sessionInterim;
+
+          const base = baseTextAtRecordStartRef.current;
+          const updatedFinal = [base, sessionFinal].filter(Boolean).join(' ');
+
+          // Update text in state and ref immediately so it appears live in the text box
+          setText(updatedFinal);
+          currentTextRef.current = updatedFinal;
+
+          setInterimTranscript(sessionInterim);
+          interimTranscriptRef.current = sessionInterim;
+
+          const fullSpokenNow = [updatedFinal, sessionInterim].filter(Boolean).join(' ').trim();
+          if (fullSpokenNow) {
+            setDetectedLanguage(detectClientLanguage(fullSpokenNow));
             setCaptureMethod('voice');
-            setInterimTranscript('');
-          } else {
-            setInterimTranscript(currentInterim.trim());
-            if (currentInterim.trim()) {
-              setDetectedLanguage(detectClientLanguage(currentInterim.trim()));
-            }
           }
         };
 
@@ -406,10 +446,14 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
           if (err?.error === 'language-not-supported' && recognition.lang !== 'en-US') {
             try {
               recognition.lang = 'en-US';
-              recognition.start();
+              if (isRecordingStateRef.current) {
+                recognition.start();
+              }
             } catch {
               // ignore
             }
+          } else if (err?.error === 'not-allowed') {
+            setVoiceNotice('Microphone access was blocked. Please permit microphone access in your browser to speak directly into the box.');
           }
         };
 
@@ -425,11 +469,11 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
 
         recognition.start();
         recognitionRef.current = recognition;
-      } catch {
-        // ignore
+      } catch (e) {
+        console.warn('Could not start SpeechRecognition:', e);
       }
     } else {
-      setVoiceNotice('Your browser does not have built-in Web Speech API enabled. Voice audio will be captured, or you can type directly into the box.');
+      setVoiceNotice('Real-time Speech Recognition is best experienced in Chrome, Safari, and Edge. Voice audio is being recorded.');
     }
 
     // 2. Initialize MediaRecorder audio capture and waveform analyser
@@ -464,22 +508,21 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
         stream.getTracks().forEach((track) => track.stop());
         stopAllAudioResources();
 
-        let currentFullText = text;
-        if (interimTranscript && interimTranscript.trim()) {
-          currentFullText = text
-            ? `${text.trim()} ${interimTranscript.trim()}`
-            : interimTranscript.trim();
-          setText(currentFullText);
-          setInterimTranscript('');
+        // Commit all captured words to prevent any stale state overwrite
+        const base = currentTextRef.current.trim();
+        const interim = interimTranscriptRef.current.trim();
+        const fullFinal = [base, interim].filter(Boolean).join(' ').trim();
+        if (fullFinal) {
+          setText(fullFinal);
+          currentTextRef.current = fullFinal;
+          setDetectedLanguage(detectClientLanguage(fullFinal));
         }
-
-        if (currentFullText) {
-          setDetectedLanguage(detectClientLanguage(currentFullText));
-        }
+        setInterimTranscript('');
+        interimTranscriptRef.current = '';
 
         if (audioChunksRef.current.length > 0) {
           const audioBlob = new Blob(audioChunksRef.current, { type: selectedMimeType });
-          await transcribeAudioWithGemini(audioBlob, selectedMimeType.split(';')[0], currentFullText);
+          await transcribeAudioWithGemini(audioBlob, selectedMimeType.split(';')[0], fullFinal);
         }
       };
 
@@ -509,14 +552,10 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
       }
 
       recorder.start(250);
-      setIsRecording(true);
-      isRecordingStateRef.current = true;
-      setRecordingSeconds(0);
-      timerIntervalRef.current = setInterval(() => {
-        setRecordingSeconds((prev) => prev + 1);
-      }, 1000);
     } catch {
-      setVoiceNotice('Microphone access was not permitted. Please allow microphone permissions, upload an audio file, or click any "Try Sample Voice" button.');
+      if (!SpeechRec) {
+        setVoiceNotice('Microphone access was not permitted. Please allow microphone permissions, upload an audio file, or click any "Try Sample Voice" button.');
+      }
     }
   };
 
@@ -524,14 +563,17 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
     setIsRecording(false);
     isRecordingStateRef.current = false;
 
-    if (interimTranscript && interimTranscript.trim()) {
-      setText((prev) => {
-        const updated = prev ? `${prev.trim()} ${interimTranscript.trim()}` : interimTranscript.trim();
-        setDetectedLanguage(detectClientLanguage(updated));
-        return updated;
-      });
-      setInterimTranscript('');
+    // Finalize all text from ref immediately
+    const base = currentTextRef.current.trim();
+    const interim = interimTranscriptRef.current.trim();
+    const fullFinal = [base, interim].filter(Boolean).join(' ').trim();
+    if (fullFinal) {
+      setText(fullFinal);
+      currentTextRef.current = fullFinal;
+      setDetectedLanguage(detectClientLanguage(fullFinal));
     }
+    setInterimTranscript('');
+    interimTranscriptRef.current = '';
 
     if (recognitionRef.current) {
       try {
@@ -543,7 +585,11 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
     }
 
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      mediaRecorderRef.current.stop();
+      try {
+        mediaRecorderRef.current.stop();
+      } catch {
+        // ignore
+      }
     } else {
       stopAllAudioResources();
     }
@@ -606,11 +652,14 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
     setCaptureMethod('voice');
 
     setText('');
+    currentTextRef.current = '';
     const words = fullTranscript.split(' ');
     let currentIndex = 0;
     const streamTimer = setInterval(() => {
       currentIndex += 1;
-      setText(words.slice(0, currentIndex).join(' '));
+      const partial = words.slice(0, currentIndex).join(' ');
+      setText(partial);
+      currentTextRef.current = partial;
       if (currentIndex >= words.length) {
         clearInterval(streamTimer);
       }
@@ -934,10 +983,13 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
                 rows={6}
                 value={displayedBoxValue}
                 onChange={(e) => {
-                  setText(e.target.value);
+                  const val = e.target.value;
+                  setText(val);
+                  currentTextRef.current = val;
                   setInterimTranscript('');
+                  interimTranscriptRef.current = '';
                   setCaptureMethod((prev) => (prev === 'voice' ? 'hybrid' : 'text'));
-                  setDetectedLanguage(detectClientLanguage(e.target.value));
+                  setDetectedLanguage(detectClientLanguage(val));
                 }}
                 placeholder={currentPhrase.placeholder}
                 className="w-full p-4 text-base text-slate-900 bg-white border-2 border-emerald-800/20 focus:border-emerald-700 rounded-xl focus:outline-none leading-relaxed placeholder:text-slate-400 resize-y transition-colors"
