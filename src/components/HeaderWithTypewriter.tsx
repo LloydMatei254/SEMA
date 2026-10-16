@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { QrCode, Mic } from 'lucide-react';
+import { QrCode, Mic, ShieldAlert } from 'lucide-react';
 import { TypewriterPhrase } from '../types';
 
 export const TYPEWRITER_PHRASES: TypewriterPhrase[] = [
@@ -37,6 +37,8 @@ interface HeaderWithTypewriterProps {
   onSelectPhraseIndex: (index: number) => void;
   onOpenQrModal: () => void;
   onFocusVoiceBox: () => void;
+  onOpenAdminView?: () => void;
+  unassignedCount?: number;
 }
 
 export const HeaderWithTypewriter: React.FC<HeaderWithTypewriterProps> = ({
@@ -44,6 +46,8 @@ export const HeaderWithTypewriter: React.FC<HeaderWithTypewriterProps> = ({
   onSelectPhraseIndex,
   onOpenQrModal,
   onFocusVoiceBox,
+  onOpenAdminView,
+  unassignedCount = 0,
 }) => {
   const [displayedText, setDisplayedText] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
@@ -125,7 +129,7 @@ export const HeaderWithTypewriter: React.FC<HeaderWithTypewriterProps> = ({
             href="#voice-capture"
             className="hover:text-emerald-800 hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0"
           >
-            Voice & Text Box
+            Voice &amp; Text Box
           </a>
           <a
             href="#qr-section"
@@ -147,16 +151,32 @@ export const HeaderWithTypewriter: React.FC<HeaderWithTypewriterProps> = ({
           </a>
         </nav>
 
-        {/* Zone 3: 1 Primary Action */}
+        {/* Zone 3: 1 Primary Action + Admin Entry */}
         <div className="flex items-center gap-3 shrink-0">
           <button
             type="button"
             onClick={onOpenQrModal}
-            className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-emerald-900 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+            className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors whitespace-nowrap shrink-0 cursor-pointer"
           >
-            <QrCode className="w-4 h-4 text-emerald-700" />
-            <span>Page QR Code</span>
+            <QrCode className="w-4 h-4 text-slate-600" />
+            <span>QR Code</span>
           </button>
+
+          {onOpenAdminView && (
+            <button
+              type="button"
+              onClick={onOpenAdminView}
+              className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-emerald-900 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+            >
+              <ShieldAlert className="w-4 h-4 text-emerald-700" />
+              <span>Admin Dispatch</span>
+              {unassignedCount > 0 && (
+                <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-white font-mono tabular-nums">
+                  {unassignedCount}
+                </span>
+              )}
+            </button>
+          )}
         </div>
       </div>
 
@@ -166,7 +186,7 @@ export const HeaderWithTypewriter: React.FC<HeaderWithTypewriterProps> = ({
           <div className="space-y-3 max-w-3xl">
             {/* Language Switcher / Cycle Indicator */}
             <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600">
-              <span className="font-medium text-emerald-900">Kenya Multilingual Voice & Text Desk</span>
+              <span className="font-medium text-emerald-900">Kenya Multilingual Voice &amp; Text Desk</span>
               <span aria-hidden="true">·</span>
               <div
                 className="inline-flex items-center gap-1 p-1 bg-slate-100 rounded-lg"

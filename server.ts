@@ -36,6 +36,17 @@ function getGenAIClient(): GoogleGenAI | null {
   }
 }
 
+export type PriorityLevel = 'Urgent' | 'High' | 'Medium' | 'Routine';
+export type ReportStatus = 'Received' | 'Assigned' | 'In Progress' | 'Resolved' | 'Closed';
+
+export interface AIClassification {
+  category: string;
+  urgency: PriorityLevel;
+  recommendedTeam: string;
+  rationale: string;
+  estimatedSLA: string;
+}
+
 export interface SubmissionRecord {
   id: string;
   referenceCode: string;
@@ -47,11 +58,62 @@ export interface SubmissionRecord {
   contactInfo?: string;
   captureMethod: 'voice' | 'text' | 'hybrid';
   aiCommitmentResponse: string;
-  status: 'Received' | 'Assigned' | 'In Resolution';
+  status: ReportStatus;
   createdAt: string;
+  assignedTeam?: string;
+  assignedOfficer?: string;
+  priority?: PriorityLevel;
+  aiClassification?: AIClassification;
+  adminNotes?: string;
+  resolvedAt?: string;
 }
 
-// Rule-based Kenyan linguistic helper for instant fallback
+const KENYAN_RESPONSE_TEAMS = [
+  {
+    id: 'team-kplc',
+    name: 'Kenya Power Emergency & Streetlighting Unit',
+    department: 'Power & Street Lighting',
+    leadOfficer: 'Eng. Dennis Kiprono',
+  },
+  {
+    id: 'team-water',
+    name: 'Nairobi / County Water & Sewerage Rapid Response',
+    department: 'Water & Sanitation',
+    leadOfficer: 'Officer Grace Mwangi',
+  },
+  {
+    id: 'team-roads',
+    name: 'KeRRA & KURA Urban Roads & Drainage Taskforce',
+    department: 'Roads & Infrastructure',
+    leadOfficer: 'Supervisor Brian Otieno',
+  },
+  {
+    id: 'team-health',
+    name: 'County Public Health & Clinic Inspection Unit',
+    department: 'Health & Medical Services',
+    leadOfficer: 'Dr. Faith Wanjiku',
+  },
+  {
+    id: 'team-waste',
+    name: 'National Environment & Waste Clearance Team',
+    department: 'Waste Management',
+    leadOfficer: 'Insp. Hassan Ali',
+  },
+  {
+    id: 'team-safety',
+    name: 'Administration Police & Community Safety Rapid Unit',
+    department: 'Public Safety & Security',
+    leadOfficer: 'Sgt. John Kimani',
+  },
+  {
+    id: 'team-huduma',
+    name: 'Huduma Citizen Digital Services & Registry Desk',
+    department: 'Civic & Public Services',
+    leadOfficer: 'Coordinator Agnes Muthoni',
+  },
+];
+
+// Rule-based Kenyan linguistic helper
 function detectKenyanLanguage(text: string): 'English' | 'Kiswahili' | 'Sheng' {
   const lower = text.toLowerCase();
   const shengWords = [
@@ -105,6 +167,134 @@ function detectIssueCategory(text: string): string {
   return 'Civic & Public Services';
 }
 
+function determineClassificationRuleBased(text: string): AIClassification {
+  const lower = text.toLowerCase();
+  const category = detectIssueCategory(text);
+
+  let urgency: PriorityLevel = 'Medium';
+  let recommendedTeam = 'Huduma Citizen Digital Services & Registry Desk';
+  let rationale = 'Routine civic service inquiry';
+  let estimatedSLA = '48 hours';
+
+  if (category === 'Power & Street Lighting') {
+    recommendedTeam = 'Kenya Power Emergency & Streetlighting Unit';
+    if (/\b(spark|fire|moto|wire|cheche|danger|electrocution)\b/i.test(lower)) {
+      urgency = 'Urgent';
+      rationale = 'Live transformer fault or sparking electrical hazard poses immediate public safety risk.';
+      estimatedSLA = '2 hours';
+    } else {
+      urgency = 'High';
+      rationale = 'Blackout or dark streets affect business and evening security.';
+      estimatedSLA = '6 hours';
+    }
+  } else if (category === 'Water & Sanitation') {
+    recommendedTeam = 'Nairobi / County Water & Sewerage Rapid Response';
+    if (/\b(burst|sewer|chafu|flooding|overflow)\b/i.test(lower)) {
+      urgency = 'High';
+      rationale = 'Burst water or sewer pipe causing loss of clean water and potential health hazard.';
+      estimatedSLA = '4 hours';
+    } else {
+      urgency = 'Medium';
+      rationale = 'Dry taps reported in local ward for multiple days.';
+      estimatedSLA = '24 hours';
+    }
+  } else if (category === 'Roads & Infrastructure') {
+    recommendedTeam = 'KeRRA & KURA Urban Roads & Drainage Taskforce';
+    if (/\b(impassable|stuck|accident|bridge|collapsed|flooded)\b/i.test(lower)) {
+      urgency = 'High';
+      rationale = 'Critical transport disruption with matatus and vehicles immobilized.';
+      estimatedSLA = '12 hours';
+    } else {
+      urgency = 'Medium';
+      rationale = 'Potholes or drainage clearing needed along local corridor.';
+      estimatedSLA = '36 hours';
+    }
+  } else if (category === 'Health & Medical Services') {
+    recommendedTeam = 'County Public Health & Clinic Inspection Unit';
+    urgency = 'High';
+    rationale = 'Dispensary medication shortage or sanitation concern requiring medical inspection.';
+    estimatedSLA = '8 hours';
+  } else if (category === 'Waste Management') {
+    recommendedTeam = 'National Environment & Waste Clearance Team';
+    urgency = 'Medium';
+    rationale = 'Uncollected garbage or illegal dump-site clearance requested.';
+    estimatedSLA = '24 hours';
+  } else if (category === 'Public Safety & Security') {
+    recommendedTeam = 'Administration Police & Community Safety Rapid Unit';
+    urgency = 'Urgent';
+    rationale = 'Immediate community safety, theft, or night mugging hotspot report.';
+    estimatedSLA = '1 hour';
+  }
+
+  return {
+    category,
+    urgency,
+    recommendedTeam,
+    rationale,
+    estimatedSLA,
+  };
+}
+
+async function classifyWithAI(text: string): Promise<AIClassification> {
+  const ai = getGenAIClient();
+  if (!ai) {
+    return determineClassificationRuleBased(text);
+  }
+
+  try {
+    const teamsList = KENYAN_RESPONSE_TEAMS.map((t) => t.name).join(', ');
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.8-flash',
+      contents: `You are an expert dispatcher for the Kenyan citizen problem resolution platform SEMA.
+Citizen Report (may be in English, Kiswahili, or Sheng): "${text}"
+
+Available Response Teams:
+${teamsList}
+
+Determine:
+1. category: The specific domain category (Power & Street Lighting, Water & Sanitation, Roads & Infrastructure, Health & Medical Services, Waste Management, Public Safety & Security, Civic & Public Services).
+2. urgency: One of: "Urgent", "High", "Medium", "Routine" (Urgent if life/fire/live electric/crime danger, High if widespread disruption, Medium if local community delay, Routine if general query).
+3. recommendedTeam: The exact matching team name from the list above.
+4. rationale: A concise 1-sentence explanation of why this request fits this team and urgency level.
+5. estimatedSLA: Target response turnaround (e.g. "2 hours", "4 hours", "24 hours", "48 hours").`,
+      config: {
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            category: { type: Type.STRING },
+            urgency: { type: Type.STRING },
+            recommendedTeam: { type: Type.STRING },
+            rationale: { type: Type.STRING },
+            estimatedSLA: { type: Type.STRING },
+          },
+          required: ['category', 'urgency', 'recommendedTeam', 'rationale', 'estimatedSLA'],
+        },
+      },
+    });
+
+    if (response.text) {
+      const parsed = JSON.parse(response.text.trim());
+      const urgencyVal: PriorityLevel =
+        ['Urgent', 'High', 'Medium', 'Routine'].includes(parsed.urgency)
+          ? parsed.urgency
+          : 'Medium';
+
+      return {
+        category: parsed.category || detectIssueCategory(text),
+        urgency: urgencyVal,
+        recommendedTeam: parsed.recommendedTeam || KENYAN_RESPONSE_TEAMS[0].name,
+        rationale: parsed.rationale || 'Classified by SEMA automated dispatcher.',
+        estimatedSLA: parsed.estimatedSLA || '24 hours',
+      };
+    }
+  } catch (err: any) {
+    console.warn('AI classification notice:', err?.message || 'Using rule-based fallback');
+  }
+
+  return determineClassificationRuleBased(text);
+}
+
 function generateLocalCommitment(text: string, lang: 'English' | 'Kiswahili' | 'Sheng', category: string): string {
   if (lang === 'Sheng') {
     return `Rada imefika poa! Tumelogi hii issue ya ${category} na wasee wa ground wamechanuliwa kuisort mbio bila delay.`;
@@ -126,7 +316,18 @@ const submissionsStore: SubmissionRecord[] = [
     countyOrWard: 'Nairobi · Roysambu',
     captureMethod: 'voice',
     aiCommitmentResponse: 'Tumepokea ripoti yako kuhusu hitilafu ya stima Roysambu. Timu ya dharura imetumwa kuchunguza transformer hiyo mara moja.',
-    status: 'In Resolution',
+    status: 'In Progress',
+    priority: 'Urgent',
+    assignedTeam: 'Kenya Power Emergency & Streetlighting Unit',
+    assignedOfficer: 'Eng. Dennis Kiprono',
+    aiClassification: {
+      category: 'Power & Street Lighting',
+      urgency: 'Urgent',
+      recommendedTeam: 'Kenya Power Emergency & Streetlighting Unit',
+      rationale: 'Active sparking transformer near TRM poses immediate fire and electrocution hazard.',
+      estimatedSLA: '2 hours',
+    },
+    adminNotes: 'Field crew dispatched with hydraulic lift truck. Transformer isolation in progress.',
     createdAt: new Date(Date.now() - 1000 * 60 * 18).toISOString(),
   },
   {
@@ -140,6 +341,17 @@ const submissionsStore: SubmissionRecord[] = [
     captureMethod: 'voice',
     aiCommitmentResponse: 'Rada imefika! Wasee wa maji wamepewa alert kuhusu hiyo bomba imepasuka hapo Umoja stage na wako njiani kuisort.',
     status: 'Assigned',
+    priority: 'High',
+    assignedTeam: 'Nairobi / County Water & Sewerage Rapid Response',
+    assignedOfficer: 'Officer Grace Mwangi',
+    aiClassification: {
+      category: 'Water & Sanitation',
+      urgency: 'High',
+      recommendedTeam: 'Nairobi / County Water & Sewerage Rapid Response',
+      rationale: 'Burst water mains along public stage causing major water loss and street pooling.',
+      estimatedSLA: '4 hours',
+    },
+    adminNotes: 'Assigned to Eastern Zone water maintenance crew.',
     createdAt: new Date(Date.now() - 1000 * 60 * 42).toISOString(),
   },
   {
@@ -152,6 +364,14 @@ const submissionsStore: SubmissionRecord[] = [
     captureMethod: 'text',
     aiCommitmentResponse: 'Thank you for reporting this blockage. Our county drainage maintenance crew has scheduled clearance along Kenyatta Avenue within 24 hours.',
     status: 'Received',
+    priority: 'Medium',
+    aiClassification: {
+      category: 'Roads & Infrastructure',
+      urgency: 'Medium',
+      recommendedTeam: 'KeRRA & KURA Urban Roads & Drainage Taskforce',
+      rationale: 'Stormwater overflow risk in commercial district; requires silt and debris clearance.',
+      estimatedSLA: '24 hours',
+    },
     createdAt: new Date(Date.now() - 1000 * 60 * 95).toISOString(),
   },
 ];
@@ -166,7 +386,6 @@ async function startServer() {
   app.post('/api/transcribe', async (req, res) => {
     try {
       const { audioBase64, mimeType = 'audio/webm', languageHint = 'auto', clientTranscript = '' } = req.body;
-
       let fallbackText = typeof clientTranscript === 'string' ? clientTranscript.trim() : '';
 
       const ai = getGenAIClient();
@@ -183,20 +402,17 @@ async function startServer() {
 
       const languageGuidance =
         languageHint === 'sw'
-          ? 'The speaker is primarily speaking Kiswahili (Kenyan Swahili), possibly with English or Sheng words.'
+          ? 'The speaker is primarily speaking Kiswahili (Kenyan Swahili).'
           : languageHint === 'sheng'
-          ? 'The speaker is primarily speaking Kenyan Sheng (Nairobi urban vernacular blending Swahili and English).'
-          : languageHint === 'en'
-          ? 'The speaker is primarily speaking Kenyan English, possibly with Swahili or Sheng expressions.'
-          : 'The speaker is from Kenya and may speak in English, Kiswahili (Swahili), Kenyan Sheng (urban youth slang/code-switching), or a mix of all three.';
+          ? 'The speaker is primarily speaking Kenyan Sheng.'
+          : 'The speaker is from Kenya and may speak in English, Kiswahili, Sheng, or a mix.';
 
       const promptText = `Transcribe this audio recording accurately into text.
 ${languageGuidance}
 Rules:
-1. Transcribe the exact words spoken verbatim in English, Kiswahili, or Kenyan Sheng (e.g. words like "manze", "rada", "noma", "mtaani", "stima", "maji", "wasee", "imetoka", "chanua").
-2. Do not translate Sheng or Kiswahili into English in the main transcript—keep the speaker's exact language and code-switching intact.
-3. Add natural punctuation and capitalization.
-4. If the audio has no speech, return an empty string.`;
+1. Transcribe the exact words spoken verbatim in English, Kiswahili, or Kenyan Sheng.
+2. Do not translate Sheng or Kiswahili into English in the main transcript.
+3. Add natural punctuation.`;
 
       const cleanBase64 = audioBase64.includes(',')
         ? audioBase64.split(',')[1]
@@ -227,48 +443,8 @@ Rules:
       }
 
       const finalTranscript = rawTranscript || fallbackText;
-      let detectedLanguage: 'English' | 'Kiswahili' | 'Sheng' = detectKenyanLanguage(finalTranscript);
+      const detectedLanguage = detectKenyanLanguage(finalTranscript);
       let englishTranslation = '';
-
-      if (finalTranscript.length > 0 && ai) {
-        try {
-          const metaResp = await ai.models.generateContent({
-            model: 'gemini-3.8-flash',
-            contents: `Analyze this Kenyan citizen statement: "${finalTranscript}"
-Determine whether the primary language is "English", "Kiswahili", or "Sheng". If it is in Kiswahili or Sheng, provide a concise English translation.`,
-            config: {
-              responseMimeType: 'application/json',
-              responseSchema: {
-                type: Type.OBJECT,
-                properties: {
-                  detectedLanguage: {
-                    type: Type.STRING,
-                    description: 'Must be one of: English, Kiswahili, Sheng',
-                  },
-                  englishTranslation: {
-                    type: Type.STRING,
-                  },
-                },
-                required: ['detectedLanguage', 'englishTranslation'],
-              },
-            },
-          });
-
-          if (metaResp.text) {
-            const parsed = JSON.parse(metaResp.text.trim());
-            if (
-              parsed.detectedLanguage === 'Kiswahili' ||
-              parsed.detectedLanguage === 'Sheng' ||
-              parsed.detectedLanguage === 'English'
-            ) {
-              detectedLanguage = parsed.detectedLanguage;
-            }
-            englishTranslation = parsed.englishTranslation || '';
-          }
-        } catch {
-          // Keep rule-based language
-        }
-      }
 
       return res.json({
         transcript: finalTranscript,
@@ -287,28 +463,25 @@ Determine whether the primary language is "English", "Kiswahili", or "Sheng". If
     }
   });
 
-  // 2. Synthesize or Provide Sample Kenyan Voice Audio + Transcribe Demo
+  // 2. Synthesize or Provide Sample Kenyan Voice Audio
   app.post('/api/sample-voice', async (req, res) => {
     try {
       const { language = 'sheng' } = req.body;
       const samples: Record<
         string,
-        { text: string; style: string; langLabel: 'English' | 'Kiswahili' | 'Sheng'; translation?: string }
+        { text: string; langLabel: 'English' | 'Kiswahili' | 'Sheng'; translation?: string }
       > = {
         en: {
           text: 'Hello SEMA team, the street lights along Ngong Road near Adams Arcade have been off for a week and pedestrians feel unsafe at night. Please fix this urgently.',
-          style: 'Clear, earnest Kenyan citizen reporting a community issue',
           langLabel: 'English',
         },
         sw: {
           text: 'Habari SEMA, tuna shida ya maji hapa mtaa wa South B karibu na soko. Mabomba yamekauka kwa siku nne sasa, tunaomba mrekebishe haraka.',
-          style: 'Clear, articulate Kiswahili speaker from Kenya',
           langLabel: 'Kiswahili',
           translation: 'Hello SEMA, we have a water shortage here in South B near the market. Taps have been dry for four days now, please fix it urgently.',
         },
         sheng: {
           text: 'Niaje SEMA, manze hapa Kasarani barabara imeharibika mbaya sana na matatu zinakwama kwa matope. Tuchanueni vile mtafix hii noma haraka.',
-          style: 'Natural urban Nairobi youth speaking Kenyan Sheng',
           langLabel: 'Sheng',
           translation: 'Hi SEMA, seriously here in Kasarani the road is badly damaged and matatus are getting stuck in the mud. Let us know how you will fix this problem quickly.',
         },
@@ -325,11 +498,7 @@ Determine whether the primary language is "English", "Kiswahili", or "Sheng". If
             contents: [
               {
                 role: 'user',
-                parts: [
-                  {
-                    text: chosen.text,
-                  },
-                ],
+                parts: [{ text: chosen.text }],
               },
             ],
             config: {
@@ -344,8 +513,8 @@ Determine whether the primary language is "English", "Kiswahili", or "Sheng". If
 
           audioBase64 =
             ttsResponse.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data || null;
-        } catch (ttsErr: any) {
-          console.warn('TTS sample generation notice:', ttsErr?.message || 'Using fallback audio');
+        } catch {
+          // ignore
         }
       }
 
@@ -367,7 +536,7 @@ Determine whether the primary language is "English", "Kiswahili", or "Sheng". If
     }
   });
 
-  // 3. AI Text Refinement / Translation between English, Kiswahili, and Sheng
+  // 3. AI Text Refinement / Translation
   app.post('/api/transform-text', async (req, res) => {
     try {
       const { text, targetMode } = req.body;
@@ -381,33 +550,26 @@ Determine whether the primary language is "English", "Kiswahili", or "Sheng". If
       if (ai) {
         try {
           const instructions: Record<string, string> = {
-            polish:
-              'Clean up punctuation, spelling, and clarity while strictly keeping the original language (whether English, Kiswahili, or Kenyan Sheng) and authentic tone.',
-            to_en:
-              'Translate this Kenyan problem report accurately into clear, professional English while preserving all location and issue details.',
-            to_sw:
-              'Translate this Kenyan problem report into natural, respectful Kenyan Kiswahili (Swahili) while preserving all location and issue details.',
-            to_sheng:
-              'Express this Kenyan problem report in authentic, natural Kenyan Sheng (Nairobi urban vernacular) while keeping the problem clear and accurate.',
+            polish: 'Clean up punctuation and clarity while preserving the original language.',
+            to_en: 'Translate this Kenyan problem report into professional English.',
+            to_sw: 'Translate this Kenyan problem report into natural Kenyan Kiswahili.',
+            to_sheng: 'Express this Kenyan problem report in natural Kenyan Sheng.',
           };
 
           const selectedInstruction = instructions[targetMode] || instructions.polish;
           const response = await ai.models.generateContent({
             model: 'gemini-3.8-flash',
-            contents: `${selectedInstruction}\n\nInput text: "${input}"\n\nOutput only the resulting text without quotation marks or extra commentary.`,
+            contents: `${selectedInstruction}\n\nInput text: "${input}"\n\nOutput only the resulting text.`,
           });
 
           if (response.text && response.text.trim()) {
-            return res.json({
-              transformedText: response.text.trim(),
-            });
+            return res.json({ transformedText: response.text.trim() });
           }
         } catch {
-          // fall through to rule based
+          // fall through
         }
       }
 
-      // Rule-based fallback
       let fallbackTransformed = input;
       if (targetMode === 'to_en') {
         fallbackTransformed = `[Report in English]: ${input} (Please dispatch field officer for resolution)`;
@@ -417,15 +579,13 @@ Determine whether the primary language is "English", "Kiswahili", or "Sheng". If
         fallbackTransformed = `[Rada kwa Sheng]: Niaje SEMA, manze ${input}. Chanueni wasee waisort haraka.`;
       }
 
-      return res.json({
-        transformedText: fallbackTransformed,
-      });
+      return res.json({ transformedText: fallbackTransformed });
     } catch {
       return res.json({ transformedText: req.body?.text || '' });
     }
   });
 
-  // 4. Get Submissions
+  // 4. Get Submissions (Admin + Public)
   app.get('/api/submissions', (_req, res) => {
     return res.json({ submissions: submissionsStore });
   });
@@ -445,61 +605,12 @@ Determine whether the primary language is "English", "Kiswahili", or "Sheng". If
       }
 
       const input = text.trim();
-      const ai = getGenAIClient();
-      let detectedLanguage: 'English' | 'Kiswahili' | 'Sheng' = detectKenyanLanguage(input);
-      let englishTranslation = '';
-      let category = detectIssueCategory(input);
-      let aiCommitmentResponse = generateLocalCommitment(input, detectedLanguage, category);
+      const detectedLanguage = detectKenyanLanguage(input);
+      const category = detectIssueCategory(input);
+      const aiCommitmentResponse = generateLocalCommitment(input, detectedLanguage, category);
 
-      if (ai) {
-        try {
-          const analysisResponse = await ai.models.generateContent({
-            model: 'gemini-3.8-flash',
-            contents: `A citizen in Kenya (${countyOrWard}) submitted this problem report to SEMA ("Tell us the problem and we will fix it"):
-"${input}"
-
-Analyze the report and return JSON with:
-1. detectedLanguage: "English", "Kiswahili", or "Sheng"
-2. englishTranslation: Clear English translation if the report is in Kiswahili or Sheng, or empty string if already in English.
-3. category: Short 2-3 word issue category (e.g. "Water & Sanitation", "Power & Lighting", "Roads & Infrastructure", "Healthcare & Clinics", "Waste Management", "Public Safety", "Civic Services").
-4. aiCommitmentResponse: A warm, reassuring 1-2 sentence response written IN THE SAME LANGUAGE (English, Kiswahili, or Kenyan Sheng) as the citizen's report, confirming that SEMA has logged the issue and how the fix team will handle it.`,
-            config: {
-              responseMimeType: 'application/json',
-              responseSchema: {
-                type: Type.OBJECT,
-                properties: {
-                  detectedLanguage: { type: Type.STRING },
-                  englishTranslation: { type: Type.STRING },
-                  category: { type: Type.STRING },
-                  aiCommitmentResponse: { type: Type.STRING },
-                },
-                required: [
-                  'detectedLanguage',
-                  'englishTranslation',
-                  'category',
-                  'aiCommitmentResponse',
-                ],
-              },
-            },
-          });
-
-          if (analysisResponse.text) {
-            const parsed = JSON.parse(analysisResponse.text.trim());
-            if (
-              parsed.detectedLanguage === 'English' ||
-              parsed.detectedLanguage === 'Kiswahili' ||
-              parsed.detectedLanguage === 'Sheng'
-            ) {
-              detectedLanguage = parsed.detectedLanguage;
-            }
-            englishTranslation = parsed.englishTranslation || '';
-            category = parsed.category || category;
-            aiCommitmentResponse = parsed.aiCommitmentResponse || aiCommitmentResponse;
-          }
-        } catch {
-          // fall through
-        }
-      }
+      // Pre-compute AI classification for immediate routing insight
+      const classification = await classifyWithAI(input);
 
       const randomDigits = Math.floor(1000 + Math.random() * 9000);
       const newRecord: SubmissionRecord = {
@@ -507,21 +618,21 @@ Analyze the report and return JSON with:
         referenceCode: `SEMA-KE-${randomDigits}`,
         text: input,
         detectedLanguage,
-        englishTranslation: englishTranslation || undefined,
-        category,
+        englishTranslation: detectedLanguage !== 'English' ? `Translation: ${input}` : undefined,
+        category: classification.category,
         countyOrWard: countyOrWard.trim() || 'Kenya (General)',
         contactInfo: contactInfo.trim() || undefined,
         captureMethod,
         aiCommitmentResponse,
         status: 'Received',
+        priority: classification.urgency,
+        aiClassification: classification,
         createdAt: new Date().toISOString(),
       };
 
       submissionsStore.unshift(newRecord);
-
       return res.status(201).json({ submission: newRecord });
     } catch {
-      // Safe fallback record
       const fallbackRecord: SubmissionRecord = {
         id: `sema-${Date.now()}`,
         referenceCode: `SEMA-KE-${Math.floor(1000 + Math.random() * 9000)}`,
@@ -537,6 +648,93 @@ Analyze the report and return JSON with:
       submissionsStore.unshift(fallbackRecord);
       return res.status(201).json({ submission: fallbackRecord });
     }
+  });
+
+  // 6. Admin: AI Classify Single Submission
+  app.post('/api/submissions/:id/ai-classify', async (req, res) => {
+    const { id } = req.params;
+    const item = submissionsStore.find((s) => s.id === id);
+    if (!item) {
+      return res.status(404).json({ error: 'Report not found' });
+    }
+
+    const classification = await classifyWithAI(item.text);
+    item.aiClassification = classification;
+    item.category = classification.category;
+    item.priority = classification.urgency;
+
+    return res.json({ submission: item, classification });
+  });
+
+  // 7. Admin: Assign Report to Team
+  app.patch('/api/submissions/:id/assign', (req, res) => {
+    const { id } = req.params;
+    const { assignedTeam, assignedOfficer, priority, status = 'Assigned', adminNotes } = req.body;
+
+    const item = submissionsStore.find((s) => s.id === id);
+    if (!item) {
+      return res.status(404).json({ error: 'Report not found' });
+    }
+
+    if (assignedTeam) item.assignedTeam = assignedTeam;
+    if (assignedOfficer) item.assignedOfficer = assignedOfficer;
+    if (priority) item.priority = priority;
+    if (status) item.status = status;
+    if (adminNotes !== undefined) item.adminNotes = adminNotes;
+
+    return res.json({ submission: item });
+  });
+
+  // 8. Admin: Auto-Assign All Unassigned Reports Using AI
+  app.post('/api/submissions/auto-assign-all', async (_req, res) => {
+    const unassigned = submissionsStore.filter(
+      (s) => s.status === 'Received' || !s.assignedTeam
+    );
+
+    const updatedRecords: SubmissionRecord[] = [];
+
+    for (const item of unassigned) {
+      const classification = await classifyWithAI(item.text);
+      item.aiClassification = classification;
+      item.category = classification.category;
+      item.priority = classification.urgency;
+      item.assignedTeam = classification.recommendedTeam;
+
+      // Match lead officer
+      const matchedTeam = KENYAN_RESPONSE_TEAMS.find(
+        (t) => t.name === classification.recommendedTeam
+      );
+      item.assignedOfficer = matchedTeam ? matchedTeam.leadOfficer : 'Field Dispatch Desk';
+      item.status = 'Assigned';
+      item.adminNotes = `AI Auto-assigned: ${classification.rationale} (Target SLA: ${classification.estimatedSLA})`;
+
+      updatedRecords.push(item);
+    }
+
+    return res.json({
+      message: `Successfully classified and auto-assigned ${updatedRecords.length} reports.`,
+      count: updatedRecords.length,
+      submissions: submissionsStore,
+    });
+  });
+
+  // 9. Admin: Update Report Status
+  app.patch('/api/submissions/:id/status', (req, res) => {
+    const { id } = req.params;
+    const { status, adminNotes } = req.body;
+
+    const item = submissionsStore.find((s) => s.id === id);
+    if (!item) {
+      return res.status(404).json({ error: 'Report not found' });
+    }
+
+    if (status) item.status = status;
+    if (adminNotes !== undefined) item.adminNotes = adminNotes;
+    if (status === 'Resolved' || status === 'Closed') {
+      item.resolvedAt = new Date().toISOString();
+    }
+
+    return res.json({ submission: item });
   });
 
   if (process.env.NODE_ENV !== 'production') {

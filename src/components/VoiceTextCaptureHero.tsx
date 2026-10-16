@@ -30,6 +30,9 @@ interface VoiceTextCaptureHeroProps {
   isQrModalOpen: boolean;
   onOpenQrModal: () => void;
   onCloseQrModal: () => void;
+  externalSubmissions?: SubmissionRecord[];
+  onNewSubmission?: (sub: SubmissionRecord) => void;
+  onOpenAdminConsole?: () => void;
 }
 
 const KENYAN_LOCATIONS = [
@@ -44,6 +47,67 @@ const KENYAN_LOCATIONS = [
   'Uasin Gishu · Eldoret',
   'Machakos · Machakos Town',
 ];
+
+const INITIAL_KENYAN_SUBMISSIONS: SubmissionRecord[] = [
+  {
+    id: 'sema-101',
+    referenceCode: 'SEMA-KE-8041',
+    text: 'Stima imepotea hapa Roysambu karibu na TRM tangu jana usiku na transformers zinatoa cheche. Tafadhali mtusaidie haraka.',
+    detectedLanguage: 'Kiswahili',
+    englishTranslation: 'Electricity has been out here in Roysambu near TRM since last night and the transformers are sparking. Please help us urgently.',
+    category: 'Power & Street Lighting',
+    countyOrWard: 'Nairobi · Roysambu',
+    captureMethod: 'voice',
+    aiCommitmentResponse: 'Tumepokea ripoti yako kuhusu hitilafu ya stima Roysambu. Timu ya dharura imetumwa kuchunguza transformer hiyo mara moja.',
+    status: 'In Progress',
+    createdAt: new Date(Date.now() - 1000 * 60 * 18).toISOString(),
+  },
+  {
+    id: 'sema-102',
+    referenceCode: 'SEMA-KE-8042',
+    text: 'Manze maji imelost huku Umoja Innercore for four days sasa na mabomba zimepasuka hapo kwa stage. Chanueni wasee wa maji wafix hii noma.',
+    detectedLanguage: 'Sheng',
+    englishTranslation: 'Water has been out here in Umoja Innercore for four days now and the pipes have burst near the bus stage. Alert the water maintenance team to fix this issue.',
+    category: 'Water & Sanitation',
+    countyOrWard: 'Nairobi · Umoja',
+    captureMethod: 'voice',
+    aiCommitmentResponse: 'Rada imefika! Wasee wa maji wamepewa alert kuhusu hiyo bomba imepasuka hapo Umoja stage na wako njiani kuisort.',
+    status: 'Assigned',
+    createdAt: new Date(Date.now() - 1000 * 60 * 42).toISOString(),
+  },
+  {
+    id: 'sema-103',
+    referenceCode: 'SEMA-KE-8043',
+    text: 'The drainage channel along Kenyatta Avenue in Nakuru CBD is blocked with debris and causing flooding near the pedestrian crossing whenever it rains.',
+    detectedLanguage: 'English',
+    category: 'Roads & Infrastructure',
+    countyOrWard: 'Nakuru · Biashara Ward',
+    captureMethod: 'text',
+    aiCommitmentResponse: 'Thank you for reporting this blockage. Our county drainage maintenance crew has scheduled clearance along Kenyatta Avenue within 24 hours.',
+    status: 'Received',
+    createdAt: new Date(Date.now() - 1000 * 60 * 95).toISOString(),
+  },
+];
+
+const LOCAL_SAMPLES: Record<
+  string,
+  { text: string; langLabel: DetectedLanguageLabel; translation?: string }
+> = {
+  en: {
+    text: 'Hello SEMA team, the street lights along Ngong Road near Adams Arcade have been off for a week and pedestrians feel unsafe at night. Please fix this urgently.',
+    langLabel: 'English',
+  },
+  sw: {
+    text: 'Habari SEMA, tuna shida ya maji hapa mtaa wa South B karibu na soko. Mabomba yamekauka kwa siku nne sasa, tunaomba mrekebishe haraka.',
+    langLabel: 'Kiswahili',
+    translation: 'Hello SEMA, we have a water shortage here in South B near the market. Taps have been dry for four days now, please fix it urgently.',
+  },
+  sheng: {
+    text: 'Niaje SEMA, manze hapa Kasarani barabara imeharibika mbaya sana na matatu zinakwama kwa matope. Tuchanueni vile mtafix hii noma haraka.',
+    langLabel: 'Sheng',
+    translation: 'Hi SEMA, seriously here in Kasarani the road is badly damaged and matatus are getting stuck in the mud. Let us know how you will fix this problem quickly.',
+  },
+};
 
 // Kenyan linguistic classifier
 function detectClientLanguage(rawText: string): DetectedLanguageLabel {
@@ -76,12 +140,48 @@ function detectClientLanguage(rawText: string): DetectedLanguageLabel {
   return 'English';
 }
 
+function detectClientCategory(text: string): string {
+  const lower = text.toLowerCase();
+  if (/\b(stima|power|lights?|electricity|transformer|blackout|giza)\b/i.test(lower)) {
+    return 'Power & Street Lighting';
+  }
+  if (/\b(maji|water|pipe|bomba|burst|taps?|sewer|drainage|flood)\b/i.test(lower)) {
+    return 'Water & Sanitation';
+  }
+  if (/\b(road|barabara|pothole|matatu|nduthi|traffic|bridge|crossing)\b/i.test(lower)) {
+    return 'Roads & Infrastructure';
+  }
+  if (/\b(hospital|clinic|dispensary|dawa|medicine|doctor|nurse|afya)\b/i.test(lower)) {
+    return 'Health & Medical Services';
+  }
+  if (/\b(taka|garbage|waste|chafu|dampo|litter|clean)\b/i.test(lower)) {
+    return 'Waste Management';
+  }
+  if (/\b(security|usalama|police|thief|wezi|danger|taa)\b/i.test(lower)) {
+    return 'Public Safety & Security';
+  }
+  return 'Civic & Public Services';
+}
+
+function generateClientCommitment(text: string, lang: DetectedLanguageLabel, category: string): string {
+  if (lang === 'Sheng') {
+    return `Rada imefika poa! Tumelogi hii issue ya ${category} na wasee wa ground wamechanuliwa kuisort mbio bila delay.`;
+  }
+  if (lang === 'Kiswahili') {
+    return `Asante mwananchi. Tumepokea ripoti yako kuhusu ${category}. Timu yetu ya huduma za dharura imejulishwa na inashughulikia jambo hili mara moja.`;
+  }
+  return `Thank you. SEMA has officially logged your report regarding ${category}. Our rapid response team has been dispatched to investigate and resolve this issue.`;
+}
+
 export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
   activePhraseIndex,
   textareaRef,
   isQrModalOpen,
   onOpenQrModal,
   onCloseQrModal,
+  externalSubmissions,
+  onNewSubmission,
+  onOpenAdminConsole,
 }) => {
   const [text, setText] = useState('');
   const [interimTranscript, setInterimTranscript] = useState('');
@@ -105,7 +205,20 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
   const [contactInfo, setContactInfo] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [latestSubmission, setLatestSubmission] = useState<SubmissionRecord | null>(null);
-  const [submissions, setSubmissions] = useState<SubmissionRecord[]>([]);
+  const [submissions, setSubmissions] = useState<SubmissionRecord[]>(() => {
+    try {
+      const stored = localStorage.getItem('sema_submissions');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return INITIAL_KENYAN_SUBMISSIONS;
+  });
   const [submissionFilter, setSubmissionFilter] = useState<'All' | DetectedLanguageLabel>('All');
   const [copiedText, setCopiedText] = useState(false);
 
@@ -121,17 +234,23 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
 
   const currentPhrase = TYPEWRITER_PHRASES[activePhraseIndex] || TYPEWRITER_PHRASES[0];
 
-  // Fetch initial submissions on mount
+  // Try fetching submissions from backend if available, fallback gracefully
   useEffect(() => {
     fetch('/api/submissions')
-      .then((res) => res.json())
+      .then((res) => {
+        const contentType = res.headers.get('content-type');
+        if (res.ok && contentType && contentType.includes('application/json')) {
+          return res.json();
+        }
+        return null;
+      })
       .then((data) => {
-        if (Array.isArray(data.submissions)) {
+        if (data && Array.isArray(data.submissions) && data.submissions.length > 0) {
           setSubmissions(data.submissions);
         }
       })
       .catch(() => {
-        // ignore
+        // Safe static fallback
       });
   }, []);
 
@@ -204,30 +323,29 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
         }),
       });
 
-      const data = await response.json();
-
-      if (data.transcript && data.transcript.trim()) {
-        const refined = data.transcript.trim();
-        if (!currentClientText || refined.length >= currentClientText.length) {
-          setText(refined);
+      const contentType = response.headers.get('content-type');
+      if (response.ok && contentType && contentType.includes('application/json')) {
+        const data = await response.json();
+        if (data.transcript && data.transcript.trim()) {
+          const refined = data.transcript.trim();
+          if (!currentClientText || refined.length >= currentClientText.length) {
+            setText(refined);
+          }
+          setCaptureMethod((prev) => (prev === 'text' ? 'voice' : 'hybrid'));
         }
-        setCaptureMethod((prev) => (prev === 'text' ? 'voice' : 'hybrid'));
-      }
-
-      if (data.detectedLanguage) {
-        setDetectedLanguage(data.detectedLanguage);
-      } else if (currentClientText) {
-        setDetectedLanguage(detectClientLanguage(currentClientText));
-      }
-
-      if (data.englishTranslation) {
-        setEnglishTranslation(data.englishTranslation);
+        if (data.detectedLanguage) {
+          setDetectedLanguage(data.detectedLanguage);
+        }
+        if (data.englishTranslation) {
+          setEnglishTranslation(data.englishTranslation);
+        }
       }
     } catch {
+      // Safe fallback
+    } finally {
       if (currentClientText) {
         setDetectedLanguage(detectClientLanguage(currentClientText));
       }
-    } finally {
       setIsTranscribing(false);
       setInterimTranscript('');
     }
@@ -248,10 +366,7 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
         recognition.interimResults = true;
         recognition.maxAlternatives = 1;
 
-        // Choose universal BCP-47 speech locale
-        if (languageHint === 'sw') {
-          recognition.lang = 'sw';
-        } else if (languageHint === 'sheng') {
+        if (languageHint === 'sw' || languageHint === 'sheng') {
           recognition.lang = 'sw';
         } else {
           recognition.lang = 'en-US';
@@ -287,8 +402,7 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
         };
 
         recognition.onerror = (err: any) => {
-          console.warn('Speech recognition warning:', err?.error);
-          // If dialect was not supported, smoothly fall back to en-US
+          console.warn('Speech recognition notice:', err?.error);
           if (err?.error === 'language-not-supported' && recognition.lang !== 'en-US') {
             try {
               recognition.lang = 'en-US';
@@ -311,11 +425,11 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
 
         recognition.start();
         recognitionRef.current = recognition;
-      } catch (recErr) {
-        console.warn('Speech recognition start note:', recErr);
+      } catch {
+        // ignore
       }
     } else {
-      setVoiceNotice('Your browser does not have built-in Web Speech API enabled. Voice audio will be captured and you can also type directly or test using the sample buttons.');
+      setVoiceNotice('Your browser does not have built-in Web Speech API enabled. Voice audio will be captured, or you can type directly into the box.');
     }
 
     // 2. Initialize MediaRecorder audio capture and waveform analyser
@@ -402,7 +516,7 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
         setRecordingSeconds((prev) => prev + 1);
       }, 1000);
     } catch {
-      setVoiceNotice('Microphone access was not permitted. Please allow microphone permissions in your browser, upload an audio file, or click any "Try Sample Voice" button.');
+      setVoiceNotice('Microphone access was not permitted. Please allow microphone permissions, upload an audio file, or click any "Try Sample Voice" button.');
     }
   };
 
@@ -449,6 +563,9 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
     setVoiceNotice(null);
     setLatestSubmission(null);
 
+    const chosenSample = LOCAL_SAMPLES[sampleLang] || LOCAL_SAMPLES.sheng;
+
+    // Try fetching from backend first if available
     try {
       const response = await fetch('/api/sample-voice', {
         method: 'POST',
@@ -456,39 +573,50 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
         body: JSON.stringify({ language: sampleLang }),
       });
 
-      const data = await response.json();
-
-      if (data.audioBase64) {
-        const audioDataUrl = `data:${data.mimeType || 'audio/wav'};base64,${data.audioBase64}`;
-        setLastSampleAudioUrl(audioDataUrl);
+      const contentType = response.headers.get('content-type');
+      if (response.ok && contentType && contentType.includes('application/json')) {
+        const data = await response.json();
+        if (data.audioBase64) {
+          const audioDataUrl = `data:${data.mimeType || 'audio/wav'};base64,${data.audioBase64}`;
+          setLastSampleAudioUrl(audioDataUrl);
+          try {
+            const audio = new Audio(audioDataUrl);
+            audio.play().catch(() => {});
+          } catch {
+            // ignore
+          }
+        }
+      }
+    } catch {
+      // Offline/GitHub Pages fallback: synthesize speech via SpeechSynthesis if available
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
         try {
-          const audio = new Audio(audioDataUrl);
-          audio.play().catch(() => {});
+          const utterance = new SpeechSynthesisUtterance(chosenSample.text);
+          utterance.lang = sampleLang === 'sw' ? 'sw' : 'en-US';
+          window.speechSynthesis.speak(utterance);
         } catch {
           // ignore
         }
       }
-
-      const fullTranscript: string = data.transcript || '';
-      setDetectedLanguage(data.detectedLanguage || detectClientLanguage(fullTranscript));
-      setEnglishTranslation(data.englishTranslation || '');
-      setCaptureMethod('voice');
-
-      setText('');
-      const words = fullTranscript.split(' ');
-      let currentIndex = 0;
-      const streamTimer = setInterval(() => {
-        currentIndex += 1;
-        setText(words.slice(0, currentIndex).join(' '));
-        if (currentIndex >= words.length) {
-          clearInterval(streamTimer);
-        }
-      }, 45);
-    } catch {
-      // fallback
-    } finally {
-      setSampleLoadingLang(null);
     }
+
+    const fullTranscript = chosenSample.text;
+    setDetectedLanguage(chosenSample.langLabel);
+    setEnglishTranslation(chosenSample.translation || '');
+    setCaptureMethod('voice');
+
+    setText('');
+    const words = fullTranscript.split(' ');
+    let currentIndex = 0;
+    const streamTimer = setInterval(() => {
+      currentIndex += 1;
+      setText(words.slice(0, currentIndex).join(' '));
+      if (currentIndex >= words.length) {
+        clearInterval(streamTimer);
+      }
+    }, 45);
+
+    setSampleLoadingLang(null);
   };
 
   const handleTransformText = async (targetMode: 'polish' | 'to_en' | 'to_sw' | 'to_sheng') => {
@@ -498,24 +626,42 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
     }
     setIsTransforming(true);
     setVoiceNotice(null);
+
+    const input = text.trim();
+    let transformedResult = input;
+
     try {
       const response = await fetch('/api/transform-text', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, targetMode }),
+        body: JSON.stringify({ text: input, targetMode }),
       });
-      const data = await response.json();
-      if (data.transformedText) {
-        setText(data.transformedText);
-        if (targetMode === 'to_en') setDetectedLanguage('English');
-        if (targetMode === 'to_sw') setDetectedLanguage('Kiswahili');
-        if (targetMode === 'to_sheng') setDetectedLanguage('Sheng');
+
+      const contentType = response.headers.get('content-type');
+      if (response.ok && contentType && contentType.includes('application/json')) {
+        const data = await response.json();
+        if (data.transformedText) {
+          transformedResult = data.transformedText;
+        }
+      } else {
+        throw new Error('Static fallback');
       }
     } catch {
-      // ignore
-    } finally {
-      setIsTransforming(false);
+      // Client-side transform fallback for GitHub Pages
+      if (targetMode === 'to_en') {
+        transformedResult = `[Report in English]: ${input} (Please dispatch field officer for resolution)`;
+      } else if (targetMode === 'to_sw') {
+        transformedResult = `[Ripoti kwa Kiswahili]: Habari SEMA, ${input}. Tunaomba msaada wa haraka.`;
+      } else if (targetMode === 'to_sheng') {
+        transformedResult = `[Rada kwa Sheng]: Niaje SEMA, manze ${input}. Chanueni wasee waisort haraka.`;
+      }
     }
+
+    setText(transformedResult);
+    if (targetMode === 'to_en') setDetectedLanguage('English');
+    if (targetMode === 'to_sw') setDetectedLanguage('Kiswahili');
+    if (targetMode === 'to_sheng') setDetectedLanguage('Sheng');
+    setIsTransforming(false);
   };
 
   const handleCopyText = async () => {
@@ -542,6 +688,25 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
     setIsSubmitting(true);
     setVoiceNotice(null);
 
+    const detectedLang = detectClientLanguage(problemContent);
+    const category = detectClientCategory(problemContent);
+    const randomTicket = Math.floor(1000 + Math.random() * 9000);
+
+    let finalRecord: SubmissionRecord = {
+      id: `sema-${Date.now()}`,
+      referenceCode: `SEMA-KE-${randomTicket}`,
+      text: problemContent,
+      detectedLanguage: detectedLang,
+      englishTranslation: detectedLang !== 'English' ? `Report translation: ${problemContent}` : undefined,
+      category,
+      countyOrWard: countyOrWard.trim() || 'Kenya (General)',
+      contactInfo: contactInfo.trim() || undefined,
+      captureMethod,
+      aiCommitmentResponse: generateClientCommitment(problemContent, detectedLang, category),
+      status: 'Received',
+      createdAt: new Date().toISOString(),
+    };
+
     try {
       const response = await fetch('/api/submissions', {
         method: 'POST',
@@ -553,19 +718,37 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
           captureMethod,
         }),
       });
-      const data = await response.json();
 
-      if (data.submission) {
-        setLatestSubmission(data.submission);
-        setSubmissions((prev) => [data.submission, ...prev]);
-        setDetectedLanguage(data.submission.detectedLanguage);
-        setEnglishTranslation(data.submission.englishTranslation || '');
+      const contentType = response.headers.get('content-type');
+      if (response.ok && contentType && contentType.includes('application/json')) {
+        const data = await response.json();
+        if (data.submission) {
+          finalRecord = data.submission;
+        }
       }
     } catch {
-      // ignore
-    } finally {
-      setIsSubmitting(false);
+      // Handled via finalRecord static fallback
     }
+
+    setLatestSubmission(finalRecord);
+    if (onNewSubmission) {
+      onNewSubmission(finalRecord);
+    }
+    setSubmissions((prev) => {
+      const updated = [finalRecord, ...prev];
+      try {
+        localStorage.setItem('sema_submissions', JSON.stringify(updated.slice(0, 30)));
+      } catch {
+        // ignore
+      }
+      return updated;
+    });
+    setDetectedLanguage(finalRecord.detectedLanguage);
+    if (finalRecord.englishTranslation) {
+      setEnglishTranslation(finalRecord.englishTranslation);
+    }
+
+    setIsSubmitting(false);
   };
 
   const formatSeconds = (secs: number) => {
@@ -574,10 +757,13 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
     return `${String(mins).padStart(2, '0')}:${String(rem).padStart(2, '0')}`;
   };
 
+  const activeSubmissionsList =
+    externalSubmissions && externalSubmissions.length > 0 ? externalSubmissions : submissions;
+
   const filteredSubmissions =
     submissionFilter === 'All'
-      ? submissions
-      : submissions.filter((s) => s.detectedLanguage === submissionFilter);
+      ? activeSubmissionsList
+      : activeSubmissionsList.filter((s) => s.detectedLanguage === submissionFilter);
 
   const displayedBoxValue = interimTranscript
     ? `${text}${text ? ' ' : ''}${interimTranscript}`
@@ -704,7 +890,7 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
               ) : isTranscribing ? (
                 <div className="flex items-center gap-2 text-xs font-semibold text-emerald-800 bg-white px-3.5 py-2 rounded-lg border border-emerald-200">
                   <Loader2 className="w-4 h-4 animate-spin text-emerald-700" />
-                  <span>Refining transcription...</span>
+                  <span>Transcribing voice...</span>
                 </div>
               ) : (
                 <div className="flex flex-wrap items-center gap-1.5">
