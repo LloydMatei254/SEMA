@@ -25,6 +25,47 @@ const INITIAL_SUBMISSIONS: SubmissionRecord[] = [
     priority: 'Urgent',
     assignedTeam: 'Kenya Power Emergency & Streetlighting Unit',
     assignedOfficer: 'Eng. Dennis Kiprono',
+    assignedOfficerEmail: 'dennis.kiprono@kplc.co.ke',
+    emailAlertSent: true,
+    emailAlertRecipient: 'dennis.kiprono@kplc.co.ke',
+    emailAlertSentAt: new Date(Date.now() - 1000 * 60 * 17).toISOString(),
+    emailAlertSubject: '[SEMA DISPATCH ALERT] SEMA-KE-8041 - Power & Street Lighting (Urgent Priority)',
+    emailAlertBody: `======================================================
+SEMA NATIONAL CITIZEN INCIDENT DISPATCH NOTICE
+Government of Kenya - Municipal Rapid Response Command
+======================================================
+
+INCIDENT REFERENCE: SEMA-KE-8041
+PRIORITY / URGENCY: URGENT
+TARGET SLA:         2 hours
+CATEGORY:           Power & Street Lighting
+LOCATION:           Nairobi · Roysambu
+
+ASSIGNED FIELD OFFICER:
+  Officer: Eng. Dennis Kiprono
+  Email:   dennis.kiprono@kplc.co.ke
+  Team:    Kenya Power Emergency & Streetlighting Unit
+
+------------------------------------------------------
+CITIZEN INCIDENT REPORT (ORIGINAL):
+------------------------------------------------------
+"Stima imepotea hapa Roysambu karibu na TRM tangu jana usiku na transformers zinatoa cheche. Tafadhali mtusaidie haraka."
+Language: Kiswahili (Capture Method: voice)
+English Translation: "Electricity has been out here in Roysambu near TRM since last night and the transformers are sparking. Please help us urgently."
+
+------------------------------------------------------
+DISPATCH & AI ROUTING DIRECTIVES:
+------------------------------------------------------
+Routing Rationale: Active sparking transformer near TRM poses immediate fire and electrocution hazard.
+Admin Directives:  Field crew dispatched with hydraulic lift truck. Transformer isolation in progress.
+
+REQUIRED IMMEDIATE ACTIONS:
+1. Confirm receipt and mobilize ground response crew within target SLA window (2 hours).
+2. Update incident milestone status to "In Progress" in the SEMA Dispatch Console upon arrival.
+3. Submit post-intervention clearance report upon completion.
+
+Dispatch Console Access: https://sema.go.ke/admin?ref=SEMA-KE-8041
+======================================================`,
     aiClassification: {
       category: 'Power & Street Lighting',
       urgency: 'Urgent',
@@ -49,6 +90,47 @@ const INITIAL_SUBMISSIONS: SubmissionRecord[] = [
     priority: 'High',
     assignedTeam: 'Nairobi / County Water & Sewerage Rapid Response',
     assignedOfficer: 'Officer Grace Mwangi',
+    assignedOfficerEmail: 'grace.mwangi@nairobiwater.co.ke',
+    emailAlertSent: true,
+    emailAlertRecipient: 'grace.mwangi@nairobiwater.co.ke',
+    emailAlertSentAt: new Date(Date.now() - 1000 * 60 * 40).toISOString(),
+    emailAlertSubject: '[SEMA DISPATCH ALERT] SEMA-KE-8042 - Water & Sanitation (High Priority)',
+    emailAlertBody: `======================================================
+SEMA NATIONAL CITIZEN INCIDENT DISPATCH NOTICE
+Government of Kenya - Municipal Rapid Response Command
+======================================================
+
+INCIDENT REFERENCE: SEMA-KE-8042
+PRIORITY / URGENCY: HIGH
+TARGET SLA:         4 hours
+CATEGORY:           Water & Sanitation
+LOCATION:           Nairobi · Umoja
+
+ASSIGNED FIELD OFFICER:
+  Officer: Officer Grace Mwangi
+  Email:   grace.mwangi@nairobiwater.co.ke
+  Team:    Nairobi / County Water & Sewerage Rapid Response
+
+------------------------------------------------------
+CITIZEN INCIDENT REPORT (ORIGINAL):
+------------------------------------------------------
+"Manze maji imelost huku Umoja Innercore for four days sasa na mabomba zimepasuka hapo kwa stage. Chanueni wasee wa maji wafix hii noma."
+Language: Sheng (Capture Method: voice)
+English Translation: "Water has been out here in Umoja Innercore for four days now and the pipes have burst near the bus stage. Alert the water maintenance team to fix this issue."
+
+------------------------------------------------------
+DISPATCH & AI ROUTING DIRECTIVES:
+------------------------------------------------------
+Routing Rationale: Burst water mains along public stage causing major water loss and street pooling.
+Admin Directives:  Assigned to Eastern Zone water maintenance crew.
+
+REQUIRED IMMEDIATE ACTIONS:
+1. Confirm receipt and mobilize ground response crew within target SLA window (4 hours).
+2. Update incident milestone status to "In Progress" in the SEMA Dispatch Console upon arrival.
+3. Submit post-intervention clearance report upon completion.
+
+Dispatch Console Access: https://sema.go.ke/admin?ref=SEMA-KE-8042
+======================================================`,
     aiClassification: {
       category: 'Water & Sanitation',
       urgency: 'High',

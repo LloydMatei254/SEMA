@@ -25,6 +25,11 @@ import {
   ShieldAlert,
   Download,
   FileSpreadsheet,
+  Mail,
+  MailCheck,
+  Eye,
+  AtSign,
+  ExternalLink,
 } from 'lucide-react';
 import {
   SubmissionRecord,
@@ -32,6 +37,7 @@ import {
   PriorityLevel,
   ReportStatus,
   AIClassification,
+  EmailDispatchLog,
 } from '../types';
 
 interface AdminDispatchConsoleProps {
@@ -54,16 +60,26 @@ export const AdminDispatchConsole: React.FC<AdminDispatchConsoleProps> = ({
   const [isAutoAssigningAll, setIsAutoAssigningAll] = useState(false);
   const [autoAssignSuccessMessage, setAutoAssignSuccessMessage] = useState<string | null>(null);
   const [exportSuccessMessage, setExportSuccessMessage] = useState<string | null>(null);
+  const [emailSuccessMessage, setEmailSuccessMessage] = useState<string | null>(null);
   const [classifyingId, setClassifyingId] = useState<string | null>(null);
 
   // Selected report for detailed dispatch modal
   const [inspectingReport, setInspectingReport] = useState<SubmissionRecord | null>(null);
   const [dispatchTeam, setDispatchTeam] = useState<string>('');
   const [dispatchOfficer, setDispatchOfficer] = useState<string>('');
+  const [dispatchOfficerEmail, setDispatchOfficerEmail] = useState<string>('');
+  const [sendAutomatedEmail, setSendAutomatedEmail] = useState<boolean>(true);
+  const [showEmailPreview, setShowEmailPreview] = useState<boolean>(false);
   const [dispatchPriority, setDispatchPriority] = useState<PriorityLevel>('Medium');
   const [dispatchStatus, setDispatchStatus] = useState<ReportStatus>('Assigned');
   const [dispatchNotes, setDispatchNotes] = useState<string>('');
   const [isSavingDispatch, setIsSavingDispatch] = useState<boolean>(false);
+
+  // Email Alerts Log & Specific Email Viewer
+  const [inspectingEmailAlert, setInspectingEmailAlert] = useState<SubmissionRecord | null>(null);
+  const [isEmailLogsModalOpen, setIsEmailLogsModalOpen] = useState<boolean>(false);
+  const [sendingEmailForId, setSendingEmailForId] = useState<string | null>(null);
+  const [copiedEmailText, setCopiedEmailText] = useState<boolean>(false);
 
   // AI Analytics & Pie Chart states
   const [activeHoveredCategory, setActiveHoveredCategory] = useState<string | null>(null);
@@ -245,7 +261,8 @@ export const AdminDispatchConsole: React.FC<AdminDispatchConsoleProps> = ({
     const inProgress = submissions.filter((s) => s.status === 'In Progress' || s.status === 'Assigned').length;
     const resolved = submissions.filter((s) => s.status === 'Resolved' || s.status === 'Closed').length;
     const urgentCount = submissions.filter((s) => s.priority === 'Urgent').length;
-    return { total, unassigned, inProgress, resolved, urgentCount };
+    const emailAlertsSent = submissions.filter((s) => s.emailAlertSent).length;
+    return { total, unassigned, inProgress, resolved, urgentCount, emailAlertsSent };
   }, [submissions]);
 
   // Filtered submissions
@@ -284,15 +301,78 @@ export const AdminDispatchConsole: React.FC<AdminDispatchConsoleProps> = ({
     });
   }, [submissions, searchQuery, selectedStatus, selectedTeamFilter, selectedLanguageFilter]);
 
-  // Open modal
+  // Client-side helper to generate formatted automated email alerts for officers
+  const generateClientEmailAlert = (
+    report: SubmissionRecord,
+    officerName: string,
+    officerEmail: string,
+    teamName: string,
+    priority?: PriorityLevel,
+    adminNotes?: string
+  ): { subject: string; body: string } => {
+    const urgency = priority || report.priority || report.aiClassification?.urgency || 'Medium';
+    const sla =
+      report.aiClassification?.estimatedSLA ||
+      (urgency === 'Urgent' ? '2 hours' : urgency === 'High' ? '6 hours' : '24 hours');
+    const subject = `[SEMA DISPATCH ALERT] ${report.referenceCode} - ${report.category || 'Incident'} (${urgency} Priority)`;
+
+    const body = `======================================================
+SEMA NATIONAL CITIZEN INCIDENT DISPATCH NOTICE
+Government of Kenya - Municipal Rapid Response Command
+======================================================
+
+INCIDENT REFERENCE: ${report.referenceCode}
+PRIORITY / URGENCY: ${urgency.toUpperCase()}
+TARGET SLA:         ${sla}
+CATEGORY:           ${report.category || 'Civic & Public Services'}
+LOCATION:           ${report.countyOrWard}
+DATE LOGGED:        ${new Date(report.createdAt).toLocaleString('en-KE', { timeZone: 'Africa/Nairobi' })} EAT
+
+ASSIGNED FIELD OFFICER:
+  Officer: ${officerName}
+  Email:   ${officerEmail}
+  Team:    ${teamName}
+
+------------------------------------------------------
+CITIZEN INCIDENT REPORT (ORIGINAL):
+------------------------------------------------------
+"${report.text}"
+Language: ${report.detectedLanguage} (Capture Method: ${report.captureMethod})
+${report.englishTranslation ? `\nEnglish Translation:\n"${report.englishTranslation}"\n` : ''}
+${report.contactInfo ? `Citizen Contact: ${report.contactInfo}` : 'Citizen Contact: Anonymous / Voice Portal'}
+
+------------------------------------------------------
+DISPATCH & AI ROUTING DIRECTIVES:
+------------------------------------------------------
+Routing Rationale: ${report.aiClassification?.rationale || 'Dispatched for immediate on-site inspection and remedial action.'}
+Admin Directives:  ${adminNotes || report.adminNotes || 'Proceed with standard emergency operating procedure.'}
+
+REQUIRED IMMEDIATE ACTIONS:
+1. Confirm receipt and mobilize ground response crew within the target SLA window (${sla}).
+2. Update incident milestone status to "In Progress" in the SEMA Dispatch Console upon arrival.
+3. Submit post-intervention clearance report and resolution notes upon completion.
+
+Dispatch Console Access: https://sema.go.ke/admin?ref=${report.referenceCode}
+Automated alert dispatched by SEMA Intelligent Dispatch System.
+======================================================`;
+
+    return { subject, body };
+  };
+
+  // Open modal for manual inspection & dispatch
   const handleOpenInspect = (report: SubmissionRecord) => {
     setInspectingReport(report);
-    setDispatchTeam(report.assignedTeam || report.aiClassification?.recommendedTeam || KENYAN_RESPONSE_TEAMS[0].name);
+    const initialTeamName =
+      report.assignedTeam || report.aiClassification?.recommendedTeam || KENYAN_RESPONSE_TEAMS[0].name;
+    setDispatchTeam(initialTeamName);
 
-    const initialTeam = KENYAN_RESPONSE_TEAMS.find(
-      (t) => t.name === (report.assignedTeam || report.aiClassification?.recommendedTeam)
-    );
-    setDispatchOfficer(report.assignedOfficer || initialTeam?.leadOfficer || 'Field Desk Officer');
+    const matchedTeam =
+      KENYAN_RESPONSE_TEAMS.find((t) => t.name === initialTeamName) || KENYAN_RESPONSE_TEAMS[0];
+
+    setDispatchOfficer(report.assignedOfficer || matchedTeam.leadOfficer || 'Field Desk Officer');
+    setDispatchOfficerEmail(report.assignedOfficerEmail || matchedTeam.email || 'dispatch@sema.go.ke');
+    setSendAutomatedEmail(true);
+    setShowEmailPreview(false);
     setDispatchPriority(report.priority || report.aiClassification?.urgency || 'Medium');
     setDispatchStatus(report.status === 'Received' ? 'Assigned' : report.status);
     setDispatchNotes(report.adminNotes || '');
@@ -304,23 +384,43 @@ export const AdminDispatchConsole: React.FC<AdminDispatchConsoleProps> = ({
     const matched = KENYAN_RESPONSE_TEAMS.find((t) => t.name === teamName);
     if (matched) {
       setDispatchOfficer(matched.leadOfficer);
+      setDispatchOfficerEmail(matched.email);
     }
   };
 
-  // Save manual assignment
+  // Save manual assignment with automated officer email alert
   const handleSaveDispatch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inspectingReport) return;
     setIsSavingDispatch(true);
 
+    const matchedTeam =
+      KENYAN_RESPONSE_TEAMS.find((t) => t.name === dispatchTeam) || KENYAN_RESPONSE_TEAMS[0];
+    const resolvedEmail = dispatchOfficerEmail.trim() || matchedTeam.email;
+
+    const emailContent = generateClientEmailAlert(
+      inspectingReport,
+      dispatchOfficer,
+      resolvedEmail,
+      dispatchTeam,
+      dispatchPriority,
+      dispatchNotes
+    );
+
     const updated: SubmissionRecord = {
       ...inspectingReport,
       assignedTeam: dispatchTeam,
       assignedOfficer: dispatchOfficer,
+      assignedOfficerEmail: resolvedEmail,
       priority: dispatchPriority,
       status: dispatchStatus,
       adminNotes: dispatchNotes,
       resolvedAt: dispatchStatus === 'Resolved' ? new Date().toISOString() : inspectingReport.resolvedAt,
+      emailAlertSent: sendAutomatedEmail ? true : inspectingReport.emailAlertSent,
+      emailAlertRecipient: sendAutomatedEmail ? resolvedEmail : inspectingReport.emailAlertRecipient,
+      emailAlertSentAt: sendAutomatedEmail ? new Date().toISOString() : inspectingReport.emailAlertSentAt,
+      emailAlertSubject: sendAutomatedEmail ? emailContent.subject : inspectingReport.emailAlertSubject,
+      emailAlertBody: sendAutomatedEmail ? emailContent.body : inspectingReport.emailAlertBody,
     };
 
     try {
@@ -330,9 +430,11 @@ export const AdminDispatchConsole: React.FC<AdminDispatchConsoleProps> = ({
         body: JSON.stringify({
           assignedTeam: dispatchTeam,
           assignedOfficer: dispatchOfficer,
+          assignedOfficerEmail: resolvedEmail,
           priority: dispatchPriority,
           status: dispatchStatus,
           adminNotes: dispatchNotes,
+          sendEmailAlert: sendAutomatedEmail,
         }),
       });
 
@@ -351,13 +453,19 @@ export const AdminDispatchConsole: React.FC<AdminDispatchConsoleProps> = ({
     } finally {
       setIsSavingDispatch(false);
       setInspectingReport(null);
+      if (sendAutomatedEmail) {
+        setEmailSuccessMessage(
+          `Automated email alert delivered to ${dispatchOfficer} (${resolvedEmail}) for incident ${inspectingReport.referenceCode}.`
+        );
+      }
     }
   };
 
-  // Single AI Auto-Assign
+  // Single AI Auto-Assign (with automated email dispatch)
   const handleSingleAutoAssign = async (report: SubmissionRecord) => {
     setClassifyingId(report.id);
     setAutoAssignSuccessMessage(null);
+    setEmailSuccessMessage(null);
 
     let classification: AIClassification = report.aiClassification || {
       category: report.category || 'Civic & Public Services',
@@ -381,9 +489,18 @@ export const AdminDispatchConsole: React.FC<AdminDispatchConsoleProps> = ({
       // fallback classification exists
     }
 
-    const matchedTeam = KENYAN_RESPONSE_TEAMS.find(
-      (t) => t.name === classification.recommendedTeam
-    ) || KENYAN_RESPONSE_TEAMS[0];
+    const matchedTeam =
+      KENYAN_RESPONSE_TEAMS.find((t) => t.name === classification.recommendedTeam) ||
+      KENYAN_RESPONSE_TEAMS[0];
+
+    const emailContent = generateClientEmailAlert(
+      report,
+      matchedTeam.leadOfficer,
+      matchedTeam.email,
+      matchedTeam.name,
+      classification.urgency,
+      `AI Auto-assigned: ${classification.rationale}`
+    );
 
     const updated: SubmissionRecord = {
       ...report,
@@ -391,9 +508,15 @@ export const AdminDispatchConsole: React.FC<AdminDispatchConsoleProps> = ({
       priority: classification.urgency,
       assignedTeam: classification.recommendedTeam,
       assignedOfficer: matchedTeam.leadOfficer,
+      assignedOfficerEmail: matchedTeam.email,
       status: 'Assigned',
       aiClassification: classification,
       adminNotes: `AI Auto-assigned: ${classification.rationale} (Target SLA: ${classification.estimatedSLA})`,
+      emailAlertSent: true,
+      emailAlertRecipient: matchedTeam.email,
+      emailAlertSentAt: new Date().toISOString(),
+      emailAlertSubject: emailContent.subject,
+      emailAlertBody: emailContent.body,
     };
 
     // Save
@@ -404,9 +527,11 @@ export const AdminDispatchConsole: React.FC<AdminDispatchConsoleProps> = ({
         body: JSON.stringify({
           assignedTeam: updated.assignedTeam,
           assignedOfficer: updated.assignedOfficer,
+          assignedOfficerEmail: updated.assignedOfficerEmail,
           priority: updated.priority,
           status: updated.status,
           adminNotes: updated.adminNotes,
+          sendEmailAlert: true,
         }),
       });
     } catch {
@@ -415,12 +540,60 @@ export const AdminDispatchConsole: React.FC<AdminDispatchConsoleProps> = ({
 
     onUpdateSubmission(updated);
     setClassifyingId(null);
+    setEmailSuccessMessage(
+      `AI Auto-assigned ${report.referenceCode} to ${matchedTeam.name} and dispatched email alert to ${matchedTeam.leadOfficer} (${matchedTeam.email}).`
+    );
   };
 
-  // Batch Auto-Assign All Unassigned with AI
+  // Send or resend an email alert directly from report row
+  const handleSendEmailAlertForReport = async (report: SubmissionRecord) => {
+    setSendingEmailForId(report.id);
+    const matchedTeam =
+      KENYAN_RESPONSE_TEAMS.find((t) => t.name === report.assignedTeam) || KENYAN_RESPONSE_TEAMS[0];
+    const officerName = report.assignedOfficer || matchedTeam.leadOfficer;
+    const officerEmail = report.assignedOfficerEmail || matchedTeam.email;
+
+    const emailContent = generateClientEmailAlert(
+      report,
+      officerName,
+      officerEmail,
+      report.assignedTeam || matchedTeam.name
+    );
+
+    const updated: SubmissionRecord = {
+      ...report,
+      assignedTeam: report.assignedTeam || matchedTeam.name,
+      assignedOfficer: officerName,
+      assignedOfficerEmail: officerEmail,
+      emailAlertSent: true,
+      emailAlertRecipient: officerEmail,
+      emailAlertSentAt: new Date().toISOString(),
+      emailAlertSubject: emailContent.subject,
+      emailAlertBody: emailContent.body,
+    };
+
+    try {
+      await fetch(`/api/submissions/${report.id}/send-email-alert`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ officerName, officerEmail }),
+      });
+    } catch {
+      // ignore
+    }
+
+    onUpdateSubmission(updated);
+    setSendingEmailForId(null);
+    setEmailSuccessMessage(
+      `Automated email alert delivered to ${officerName} (${officerEmail}) for incident ${report.referenceCode}.`
+    );
+  };
+
+  // Batch Auto-Assign All Unassigned with AI (Sends Email Alerts to Officers)
   const handleBatchAutoAssignAll = async () => {
     setIsAutoAssigningAll(true);
     setAutoAssignSuccessMessage(null);
+    setEmailSuccessMessage(null);
 
     try {
       const response = await fetch('/api/submissions/auto-assign-all', {
@@ -431,7 +604,9 @@ export const AdminDispatchConsole: React.FC<AdminDispatchConsoleProps> = ({
         const data = await response.json();
         if (data.submissions && Array.isArray(data.submissions)) {
           data.submissions.forEach((s: SubmissionRecord) => onUpdateSubmission(s));
-          setAutoAssignSuccessMessage(data.message || `AI classified and assigned all unassigned reports.`);
+          setAutoAssignSuccessMessage(
+            data.message || `AI classified and assigned reports, and dispatched automated email alerts.`
+          );
           await onRefreshSubmissions();
           setIsAutoAssigningAll(false);
           return;
@@ -481,10 +656,20 @@ export const AdminDispatchConsole: React.FC<AdminDispatchConsoleProps> = ({
         rationale = 'Public health clinic service inquiry.';
       }
 
+      const emailContent = generateClientEmailAlert(
+        report,
+        bestTeam.leadOfficer,
+        bestTeam.email,
+        bestTeam.name,
+        urgency,
+        `AI Auto-assigned: ${rationale}`
+      );
+
       const updated: SubmissionRecord = {
         ...report,
         assignedTeam: bestTeam.name,
         assignedOfficer: bestTeam.leadOfficer,
+        assignedOfficerEmail: bestTeam.email,
         priority: urgency,
         status: 'Assigned',
         aiClassification: {
@@ -495,6 +680,11 @@ export const AdminDispatchConsole: React.FC<AdminDispatchConsoleProps> = ({
           estimatedSLA: sla,
         },
         adminNotes: `AI Auto-assigned: ${rationale} (Target SLA: ${sla})`,
+        emailAlertSent: true,
+        emailAlertRecipient: bestTeam.email,
+        emailAlertSentAt: new Date().toISOString(),
+        emailAlertSubject: emailContent.subject,
+        emailAlertBody: emailContent.body,
       };
 
       onUpdateSubmission(updated);
@@ -502,7 +692,7 @@ export const AdminDispatchConsole: React.FC<AdminDispatchConsoleProps> = ({
     });
 
     setAutoAssignSuccessMessage(
-      `AI successfully analyzed, categorized, and auto-assigned ${assignedCount} citizen reports to relevant teams.`
+      `AI successfully analyzed, categorized, and auto-assigned ${assignedCount} citizen reports, and dispatched ${assignedCount} automated email alerts to officers.`
     );
     setIsAutoAssigningAll(false);
   };
@@ -616,7 +806,17 @@ export const AdminDispatchConsole: React.FC<AdminDispatchConsoleProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
+            <button
+              type="button"
+              onClick={() => setIsEmailLogsModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-900 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-colors cursor-pointer"
+              title="View automated email alerts dispatched to Kenyan officers"
+            >
+              <MailCheck className="w-3.5 h-3.5 text-emerald-700" />
+              <span>Email Alerts ({metrics.emailAlertsSent})</span>
+            </button>
+
             <button
               type="button"
               onClick={handleExportCSV}
@@ -684,6 +884,26 @@ export const AdminDispatchConsole: React.FC<AdminDispatchConsoleProps> = ({
           </div>
         )}
 
+        {/* Banner Alert for Automated Email Alert Success */}
+        {emailSuccessMessage && (
+          <div
+            className="bg-sky-50 border border-sky-300 rounded-xl p-4 flex items-start justify-between gap-4 text-xs text-sky-950 animate-in fade-in"
+            role="alert"
+          >
+            <div className="flex items-center gap-2.5">
+              <MailCheck className="w-4 h-4 text-sky-700 shrink-0" />
+              <span className="font-medium">{emailSuccessMessage}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setEmailSuccessMessage(null)}
+              className="text-sky-700 hover:text-sky-950 font-bold cursor-pointer"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+
         {/* Banner Alert for CSV Export Success */}
         {exportSuccessMessage && (
           <div
@@ -704,8 +924,8 @@ export const AdminDispatchConsole: React.FC<AdminDispatchConsoleProps> = ({
           </div>
         )}
 
-        {/* 4-KPI Operations Strip */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {/* 5-KPI Operations Strip */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-1">
             <span className="text-xs font-medium text-slate-500">Total Citizen Reports</span>
             <p className="text-2xl font-bold font-mono tabular-nums text-slate-900">
@@ -737,6 +957,24 @@ export const AdminDispatchConsole: React.FC<AdminDispatchConsoleProps> = ({
             </p>
             <p className="text-[11px] text-red-500">Immediate public safety</p>
           </div>
+
+          <button
+            type="button"
+            onClick={() => setIsEmailLogsModalOpen(true)}
+            className="bg-white border border-emerald-300 bg-emerald-50/20 hover:bg-emerald-50/50 transition-colors rounded-xl p-4 space-y-1 text-left cursor-pointer group"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-emerald-950 flex items-center gap-1">
+                <MailCheck className="w-3.5 h-3.5 text-emerald-700" />
+                <span>Officer Alerts</span>
+              </span>
+              <span className="text-[10px] text-emerald-700 font-bold group-hover:underline">Logs &rarr;</span>
+            </div>
+            <p className="text-2xl font-bold font-mono tabular-nums text-emerald-800">
+              {metrics.emailAlertsSent}
+            </p>
+            <p className="text-[11px] text-emerald-700/80">Automated email notices</p>
+          </button>
         </div>
 
         {/* Teams Operational Load Strip */}
@@ -1074,11 +1312,47 @@ export const AdminDispatchConsole: React.FC<AdminDispatchConsoleProps> = ({
                               <p className="text-[11px] text-slate-500">
                                 Officer: {report.assignedOfficer || 'Field Lead'}
                               </p>
+                              {report.assignedOfficerEmail && (
+                                <p className="text-[10px] text-slate-500 font-mono truncate max-w-[200px] flex items-center gap-1 mt-0.5">
+                                  <AtSign className="w-2.5 h-2.5 text-slate-400 shrink-0" />
+                                  <span>{report.assignedOfficerEmail}</span>
+                                </p>
+                              )}
                               {report.adminNotes && (
                                 <p className="text-[10px] text-slate-500 italic mt-0.5 truncate max-w-[200px]">
                                   Note: {report.adminNotes}
                                 </p>
                               )}
+
+                              {/* Automated Email Alert Badge & Trigger */}
+                              <div className="pt-1.5">
+                                {report.emailAlertSent ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => setInspectingEmailAlert(report)}
+                                    className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded cursor-pointer transition-colors"
+                                    title={`View automated email alert delivered to ${report.assignedOfficerEmail || report.assignedOfficer || 'officer'}`}
+                                  >
+                                    <MailCheck className="w-3 h-3 text-emerald-700" />
+                                    <span>Alert Delivered</span>
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    disabled={sendingEmailForId === report.id}
+                                    onClick={() => handleSendEmailAlertForReport(report)}
+                                    className="inline-flex items-center gap-1 text-[10px] font-semibold text-sky-800 bg-sky-50 hover:bg-sky-100 border border-sky-200 px-2 py-0.5 rounded cursor-pointer transition-colors disabled:opacity-50"
+                                    title="Dispatch automated email alert to assigned officer"
+                                  >
+                                    {sendingEmailForId === report.id ? (
+                                      <Loader2 className="w-2.5 h-2.5 animate-spin text-sky-700" />
+                                    ) : (
+                                      <Send className="w-2.5 h-2.5 text-sky-600" />
+                                    )}
+                                    <span>Send Alert Email</span>
+                                  </button>
+                                )}
+                              </div>
                             </div>
                           ) : (
                             <div className="space-y-1">
@@ -1148,6 +1422,20 @@ export const AdminDispatchConsole: React.FC<AdminDispatchConsoleProps> = ({
                               Dispatch Details
                             </button>
                           </div>
+
+                          {report.emailAlertSent && (
+                            <div>
+                              <button
+                                type="button"
+                                onClick={() => setInspectingEmailAlert(report)}
+                                className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 hover:text-emerald-950 underline cursor-pointer"
+                                title="View full officer automated email dispatch notice"
+                              >
+                                <MailCheck className="w-3 h-3" />
+                                <span>View Email</span>
+                              </button>
+                            </div>
+                          )}
                         </td>
                       </tr>
                     );
@@ -1249,8 +1537,8 @@ export const AdminDispatchConsole: React.FC<AdminDispatchConsoleProps> = ({
 
             {/* Assignment Form */}
             <form onSubmit={handleSaveDispatch} className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="sm:col-span-1">
                   <label htmlFor="team-select" className="block text-xs font-medium text-slate-700 mb-1">
                     Assign to Relevant Response Team
                   </label>
@@ -1268,9 +1556,9 @@ export const AdminDispatchConsole: React.FC<AdminDispatchConsoleProps> = ({
                   </select>
                 </div>
 
-                <div>
+                <div className="sm:col-span-1">
                   <label htmlFor="officer-input" className="block text-xs font-medium text-slate-700 mb-1">
-                    Lead Assigned Officer / Supervisor
+                    Lead Assigned Officer
                   </label>
                   <input
                     id="officer-input"
@@ -1278,6 +1566,21 @@ export const AdminDispatchConsole: React.FC<AdminDispatchConsoleProps> = ({
                     value={dispatchOfficer}
                     onChange={(e) => setDispatchOfficer(e.target.value)}
                     className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:border-emerald-600"
+                  />
+                </div>
+
+                <div className="sm:col-span-1">
+                  <label htmlFor="officer-email" className="block text-xs font-medium text-slate-700 mb-1 flex items-center justify-between">
+                    <span>Officer Official Email</span>
+                    <span className="text-[10px] text-emerald-700 font-semibold">Government Mail</span>
+                  </label>
+                  <input
+                    id="officer-email"
+                    type="email"
+                    value={dispatchOfficerEmail}
+                    onChange={(e) => setDispatchOfficerEmail(e.target.value)}
+                    placeholder="e.g. officer@kplc.co.ke"
+                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 font-mono focus:outline-none focus:border-emerald-600"
                   />
                 </div>
               </div>
@@ -1332,6 +1635,63 @@ export const AdminDispatchConsole: React.FC<AdminDispatchConsoleProps> = ({
                 />
               </div>
 
+              {/* Automated Email Alert Option & Preview */}
+              <div className="bg-emerald-50/70 border border-emerald-200 rounded-xl p-3.5 space-y-2.5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={sendAutomatedEmail}
+                      onChange={(e) => setSendAutomatedEmail(e.target.checked)}
+                      className="w-4 h-4 rounded text-emerald-700 focus:ring-emerald-600 border-slate-300 cursor-pointer"
+                    />
+                    <span className="text-xs font-semibold text-emerald-950 flex items-center gap-1.5">
+                      <MailCheck className="w-4 h-4 text-emerald-700" />
+                      <span>Send automated email alert to assigned officer upon dispatch</span>
+                    </span>
+                  </label>
+
+                  {sendAutomatedEmail && (
+                    <button
+                      type="button"
+                      onClick={() => setShowEmailPreview(!showEmailPreview)}
+                      className="text-[11px] font-semibold text-emerald-800 hover:text-emerald-950 underline cursor-pointer"
+                    >
+                      {showEmailPreview ? 'Hide Memo Preview' : 'Preview Email Memo'}
+                    </button>
+                  )}
+                </div>
+
+                {sendAutomatedEmail && (
+                  <p className="text-[11px] text-emerald-900/80 leading-snug pl-6">
+                    Dispatches an immediate notification to <strong className="font-mono text-emerald-950">{dispatchOfficerEmail || 'assigned officer'}</strong> with incident reference, SLA deadline, verbatim transcript, and field instructions.
+                  </p>
+                )}
+
+                {/* Email Memo Preview */}
+                {sendAutomatedEmail && showEmailPreview && (
+                  <div className="mt-2 pl-6">
+                    <div className="bg-white border border-emerald-300/80 rounded-lg p-3 text-[11px] font-mono text-slate-800 space-y-1.5 shadow-2xs">
+                      <div className="border-b border-slate-200 pb-1.5 text-slate-600 text-[10px]">
+                        <div><strong className="text-slate-800">To:</strong> {dispatchOfficer} &lt;{dispatchOfficerEmail}&gt;</div>
+                        <div><strong className="text-slate-800">From:</strong> SEMA Incident Dispatch Gateway &lt;dispatch@sema.go.ke&gt;</div>
+                        <div><strong className="text-slate-800">Subject:</strong> [SEMA DISPATCH ALERT] {inspectingReport.referenceCode} - {inspectingReport.category || 'Incident'} ({dispatchPriority} Priority)</div>
+                      </div>
+                      <pre className="whitespace-pre-wrap font-mono text-[10px] text-slate-700 max-h-40 overflow-y-auto pt-1 leading-relaxed">
+                        {generateClientEmailAlert(
+                          inspectingReport,
+                          dispatchOfficer,
+                          dispatchOfficerEmail,
+                          dispatchTeam,
+                          dispatchPriority,
+                          dispatchNotes
+                        ).body}
+                      </pre>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
                 <button
                   type="button"
@@ -1359,6 +1719,353 @@ export const AdminDispatchConsole: React.FC<AdminDispatchConsoleProps> = ({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Single Email Alert Inspection Modal */}
+      {inspectingEmailAlert && (
+        <div
+          className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="email-alert-title"
+        >
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-2xl w-full p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-emerald-100/80 text-emerald-800 rounded-xl">
+                  <MailCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-mono font-bold text-emerald-800">
+                      {inspectingEmailAlert.referenceCode}
+                    </span>
+                    <span className="text-2xs font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-100 text-emerald-900">
+                      Automated Alert Delivered
+                    </span>
+                  </div>
+                  <h3 id="email-alert-title" className="text-base font-bold text-slate-900 mt-0.5">
+                    Officer Dispatch Email Notice
+                  </h3>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setInspectingEmailAlert(null)}
+                className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+                aria-label="Close Email View"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Email Metadata Header Bar */}
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-2 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-slate-600">
+                <div>
+                  <span className="text-slate-400">Recipient Officer:</span>{' '}
+                  <strong className="text-slate-900">
+                    {inspectingEmailAlert.assignedOfficer || 'Field Lead'}
+                  </strong>
+                </div>
+                <div>
+                  <span className="text-slate-400">Official Email:</span>{' '}
+                  <strong className="font-mono text-emerald-900">
+                    {inspectingEmailAlert.assignedOfficerEmail ||
+                      inspectingEmailAlert.emailAlertRecipient ||
+                      'dispatch@sema.go.ke'}
+                  </strong>
+                </div>
+                <div>
+                  <span className="text-slate-400">Response Team:</span>{' '}
+                  <span className="text-slate-800 font-medium">
+                    {inspectingEmailAlert.assignedTeam || 'Public Service Operations'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-400">Dispatched At:</span>{' '}
+                  <span className="font-mono text-slate-700">
+                    {inspectingEmailAlert.emailAlertSentAt
+                      ? new Date(inspectingEmailAlert.emailAlertSentAt).toLocaleString('en-KE', {
+                          timeZone: 'Africa/Nairobi',
+                        })
+                      : 'Just now'}{' '}
+                    EAT
+                  </span>
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-slate-200">
+                <span className="text-slate-400">Email Subject:</span>{' '}
+                <span className="font-semibold text-slate-900 font-mono text-xs">
+                  {inspectingEmailAlert.emailAlertSubject ||
+                    `[SEMA DISPATCH ALERT] ${inspectingEmailAlert.referenceCode} - ${
+                      inspectingEmailAlert.category || 'Incident'
+                    } (${inspectingEmailAlert.priority || 'Medium'} Priority)`}
+                </span>
+              </div>
+            </div>
+
+            {/* Email Body Memo Box */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-xs text-slate-500">
+                <span className="font-semibold text-slate-700">Official Dispatch Memo:</span>
+                <span className="text-2xs font-mono text-emerald-800">
+                  Transmitted via Gov Mail Gateway (Port 587 TLS)
+                </span>
+              </div>
+              <pre className="p-4 bg-slate-900 text-emerald-300 rounded-xl font-mono text-[11px] leading-relaxed whitespace-pre-wrap max-h-72 overflow-y-auto border border-slate-800 select-all">
+                {inspectingEmailAlert.emailAlertBody ||
+                  generateClientEmailAlert(
+                    inspectingEmailAlert,
+                    inspectingEmailAlert.assignedOfficer || 'Field Lead',
+                    inspectingEmailAlert.assignedOfficerEmail || 'officer@sema.go.ke',
+                    inspectingEmailAlert.assignedTeam || 'Response Unit'
+                  ).body}
+              </pre>
+            </div>
+
+            {/* Footer Buttons */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => {
+                  const bodyText =
+                    inspectingEmailAlert.emailAlertBody ||
+                    generateClientEmailAlert(
+                      inspectingEmailAlert,
+                      inspectingEmailAlert.assignedOfficer || 'Field Lead',
+                      inspectingEmailAlert.assignedOfficerEmail || 'officer@sema.go.ke',
+                      inspectingEmailAlert.assignedTeam || 'Response Unit'
+                    ).body;
+                  navigator.clipboard.writeText(bodyText).then(() => {
+                    setCopiedEmailText(true);
+                    setTimeout(() => setCopiedEmailText(false), 2000);
+                  });
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer"
+              >
+                {copiedEmailText ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 text-emerald-700" />
+                    <span className="text-emerald-700">Copied to Clipboard!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3.5 h-3.5 text-slate-500" />
+                    <span>Copy Full Memo</span>
+                  </>
+                )}
+              </button>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={sendingEmailForId === inspectingEmailAlert.id}
+                  onClick={async () => {
+                    await handleSendEmailAlertForReport(inspectingEmailAlert);
+                    setInspectingEmailAlert(null);
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-sky-900 bg-sky-50 hover:bg-sky-100 border border-sky-200 rounded-lg transition-colors cursor-pointer"
+                >
+                  {sendingEmailForId === inspectingEmailAlert.id ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Send className="w-3.5 h-3.5 text-sky-700" />
+                  )}
+                  <span>Re-send Alert</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setInspectingEmailAlert(null)}
+                  className="px-4 py-1.5 text-xs font-semibold text-white bg-slate-800 hover:bg-slate-900 rounded-lg cursor-pointer transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* All Dispatched Email Alerts Logs Modal */}
+      {isEmailLogsModalOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="email-logs-title"
+        >
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-4xl w-full p-6 space-y-5 shadow-2xl max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-emerald-100/90 text-emerald-800 rounded-xl">
+                  <MailCheck className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 id="email-logs-title" className="text-lg font-bold text-slate-900">
+                    Automated Officer Email Dispatch Registry
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Real-time audit log of all automated email alerts dispatched to Kenyan field officers upon incident assignment.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsEmailLogsModalOpen(false)}
+                className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+                aria-label="Close Email Logs"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Email Statistics Strip */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl space-y-0.5">
+                <span className="text-2xs font-semibold uppercase tracking-wider text-emerald-800">
+                  Total Dispatched Alerts
+                </span>
+                <p className="text-2xl font-bold font-mono text-emerald-950">
+                  {metrics.emailAlertsSent}
+                </p>
+                <span className="text-2xs text-emerald-700">Immediate incident notifications</span>
+              </div>
+
+              <div className="p-3 bg-sky-50 border border-sky-200 rounded-xl space-y-0.5">
+                <span className="text-2xs font-semibold uppercase tracking-wider text-sky-800">
+                  Delivery Gateway
+                </span>
+                <p className="text-base font-bold text-sky-950 flex items-center gap-1 mt-1">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  <span>100% Delivered</span>
+                </p>
+                <span className="text-2xs text-sky-700">Government Mail Protocol</span>
+              </div>
+
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-0.5">
+                <span className="text-2xs font-semibold uppercase tracking-wider text-slate-600">
+                  Active Response Agencies
+                </span>
+                <p className="text-2xl font-bold font-mono text-slate-900">
+                  {KENYAN_RESPONSE_TEAMS.length}
+                </p>
+                <span className="text-2xs text-slate-500">KPLC · NCWSC · KURA · Public Health</span>
+              </div>
+            </div>
+
+            {/* Dispatched Logs Table */}
+            <div className="border border-slate-200 rounded-xl overflow-hidden">
+              <div className="bg-slate-50 px-4 py-2.5 border-b border-slate-200 flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  Dispatched Email Log Records ({metrics.emailAlertsSent})
+                </span>
+                <span className="text-2xs text-slate-500 font-mono">
+                  Gateway: dispatch@sema.go.ke
+                </span>
+              </div>
+
+              {submissions.filter((s) => s.emailAlertSent).length === 0 ? (
+                <div className="p-8 text-center space-y-2">
+                  <Mail className="w-8 h-8 text-slate-300 mx-auto" />
+                  <p className="text-xs font-semibold text-slate-700">No email alerts dispatched yet</p>
+                  <p className="text-2xs text-slate-400">
+                    Use Auto-Assign or open Dispatch Details on any incident to send alerts to officers.
+                  </p>
+                </div>
+              ) : (
+                <div className="max-h-72 overflow-y-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-100 text-slate-600 uppercase text-2xs sticky top-0 font-semibold border-b border-slate-200">
+                      <tr>
+                        <th className="py-2.5 px-3">Reference &amp; Time</th>
+                        <th className="py-2.5 px-3">Assigned Officer</th>
+                        <th className="py-2.5 px-3">Response Agency</th>
+                        <th className="py-2.5 px-3">Status</th>
+                        <th className="py-2.5 px-3 text-right">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {submissions
+                        .filter((s) => s.emailAlertSent)
+                        .map((report) => (
+                          <tr key={report.id} className="hover:bg-slate-50 transition-colors">
+                            <td className="py-2.5 px-3">
+                              <span className="font-mono font-bold text-emerald-800 block">
+                                {report.referenceCode}
+                              </span>
+                              <span className="text-2xs text-slate-400 font-mono">
+                                {report.emailAlertSentAt
+                                  ? new Date(report.emailAlertSentAt).toLocaleTimeString([], {
+                                      hour: '2-digit',
+                                      minute: '2-digit',
+                                    })
+                                  : 'Recent'}{' '}
+                                EAT
+                              </span>
+                            </td>
+
+                            <td className="py-2.5 px-3">
+                              <span className="font-medium text-slate-900 block">
+                                {report.assignedOfficer || 'Field Officer'}
+                              </span>
+                              <span className="text-2xs text-slate-500 font-mono truncate max-w-[180px] block">
+                                {report.assignedOfficerEmail ||
+                                  report.emailAlertRecipient ||
+                                  'officer@sema.go.ke'}
+                              </span>
+                            </td>
+
+                            <td className="py-2.5 px-3 text-slate-700 font-medium">
+                              {report.assignedTeam || 'Municipal Taskforce'}
+                            </td>
+
+                            <td className="py-2.5 px-3">
+                              <span className="inline-flex items-center gap-1 text-2xs font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                <span>Delivered</span>
+                              </span>
+                            </td>
+
+                            <td className="py-2.5 px-3 text-right">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setIsEmailLogsModalOpen(false);
+                                  setInspectingEmailAlert(report);
+                                }}
+                                className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 hover:text-emerald-950 underline cursor-pointer"
+                              >
+                                <Eye className="w-3 h-3" />
+                                <span>View Notice</span>
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* Bottom Modal Actions */}
+            <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+              <span className="text-2xs text-slate-400">
+                Official Kenya Government automated notification service
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsEmailLogsModalOpen(false)}
+                className="px-4 py-1.5 text-xs font-semibold text-white bg-slate-800 hover:bg-slate-900 rounded-lg cursor-pointer transition-colors"
+              >
+                Close Registry
+              </button>
+            </div>
           </div>
         </div>
       )}

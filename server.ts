@@ -62,11 +62,63 @@ export interface SubmissionRecord {
   createdAt: string;
   assignedTeam?: string;
   assignedOfficer?: string;
+  assignedOfficerEmail?: string;
   priority?: PriorityLevel;
   aiClassification?: AIClassification;
   adminNotes?: string;
   resolvedAt?: string;
+  emailAlertSent?: boolean;
+  emailAlertRecipient?: string;
+  emailAlertSentAt?: string;
+  emailAlertSubject?: string;
+  emailAlertBody?: string;
 }
+
+export interface EmailDispatchLog {
+  id: string;
+  submissionId: string;
+  referenceCode: string;
+  toEmail: string;
+  officerName: string;
+  teamName: string;
+  category: string;
+  priority: PriorityLevel;
+  subject: string;
+  body: string;
+  sentAt: string;
+  status: 'Delivered' | 'Queued' | 'Simulated';
+}
+
+const emailDispatchLogs: EmailDispatchLog[] = [
+  {
+    id: 'email-init-1',
+    submissionId: 'sema-101',
+    referenceCode: 'SEMA-KE-8041',
+    toEmail: 'dennis.kiprono@kplc.co.ke',
+    officerName: 'Eng. Dennis Kiprono',
+    teamName: 'Kenya Power Emergency & Streetlighting Unit',
+    category: 'Power & Street Lighting',
+    priority: 'Urgent',
+    subject: '[SEMA DISPATCH ALERT] SEMA-KE-8041 - Power & Street Lighting (Urgent Priority)',
+    body: `INCIDENT REFERENCE: SEMA-KE-8041\nPRIORITY / URGENCY: URGENT\nTARGET SLA: 2 hours\nOFFICER: Eng. Dennis Kiprono (dennis.kiprono@kplc.co.ke)\nLOCATION: Nairobi · Roysambu\n\nCITIZEN REPORT:\n"Stima imepotea hapa Roysambu karibu na TRM tangu jana usiku na transformers zinatoa cheche. Tafadhali mtusaidie haraka."\n\nDIRECTIVES: Field crew dispatched with hydraulic lift truck. Transformer isolation in progress.`,
+    sentAt: new Date(Date.now() - 1000 * 60 * 17).toISOString(),
+    status: 'Delivered',
+  },
+  {
+    id: 'email-init-2',
+    submissionId: 'sema-102',
+    referenceCode: 'SEMA-KE-8042',
+    toEmail: 'grace.mwangi@nairobiwater.co.ke',
+    officerName: 'Officer Grace Mwangi',
+    teamName: 'Nairobi / County Water & Sewerage Rapid Response',
+    category: 'Water & Sanitation',
+    priority: 'High',
+    subject: '[SEMA DISPATCH ALERT] SEMA-KE-8042 - Water & Sanitation (High Priority)',
+    body: `INCIDENT REFERENCE: SEMA-KE-8042\nPRIORITY / URGENCY: HIGH\nTARGET SLA: 4 hours\nOFFICER: Officer Grace Mwangi (grace.mwangi@nairobiwater.co.ke)\nLOCATION: Nairobi · Umoja\n\nCITIZEN REPORT:\n"Manze maji imelost huku Umoja Innercore for four days sasa na mabomba zimepasuka hapo kwa stage. Chanueni wasee wa maji wafix hii noma."\n\nDIRECTIVES: Assigned to Eastern Zone water maintenance crew.`,
+    sentAt: new Date(Date.now() - 1000 * 60 * 40).toISOString(),
+    status: 'Delivered',
+  },
+];
 
 const KENYAN_RESPONSE_TEAMS = [
   {
@@ -74,42 +126,49 @@ const KENYAN_RESPONSE_TEAMS = [
     name: 'Kenya Power Emergency & Streetlighting Unit',
     department: 'Power & Street Lighting',
     leadOfficer: 'Eng. Dennis Kiprono',
+    email: 'dennis.kiprono@kplc.co.ke',
   },
   {
     id: 'team-water',
     name: 'Nairobi / County Water & Sewerage Rapid Response',
     department: 'Water & Sanitation',
     leadOfficer: 'Officer Grace Mwangi',
+    email: 'grace.mwangi@nairobiwater.co.ke',
   },
   {
     id: 'team-roads',
     name: 'KeRRA & KURA Urban Roads & Drainage Taskforce',
     department: 'Roads & Infrastructure',
     leadOfficer: 'Supervisor Brian Otieno',
+    email: 'brian.otieno@kura.go.ke',
   },
   {
     id: 'team-health',
     name: 'County Public Health & Clinic Inspection Unit',
     department: 'Health & Medical Services',
     leadOfficer: 'Dr. Faith Wanjiku',
+    email: 'faith.wanjiku@health.go.ke',
   },
   {
     id: 'team-waste',
     name: 'National Environment & Waste Clearance Team',
     department: 'Waste Management',
     leadOfficer: 'Insp. Hassan Ali',
+    email: 'hassan.ali@nema.go.ke',
   },
   {
     id: 'team-safety',
     name: 'Administration Police & Community Safety Rapid Unit',
     department: 'Public Safety & Security',
     leadOfficer: 'Sgt. John Kimani',
+    email: 'john.kimani@nps.go.ke',
   },
   {
     id: 'team-huduma',
     name: 'Huduma Citizen Digital Services & Registry Desk',
     department: 'Civic & Public Services',
     leadOfficer: 'Coordinator Agnes Muthoni',
+    email: 'agnes.muthoni@hudumakenya.go.ke',
   },
 ];
 
@@ -320,6 +379,47 @@ const submissionsStore: SubmissionRecord[] = [
     priority: 'Urgent',
     assignedTeam: 'Kenya Power Emergency & Streetlighting Unit',
     assignedOfficer: 'Eng. Dennis Kiprono',
+    assignedOfficerEmail: 'dennis.kiprono@kplc.co.ke',
+    emailAlertSent: true,
+    emailAlertRecipient: 'dennis.kiprono@kplc.co.ke',
+    emailAlertSentAt: new Date(Date.now() - 1000 * 60 * 17).toISOString(),
+    emailAlertSubject: '[SEMA DISPATCH ALERT] SEMA-KE-8041 - Power & Street Lighting (Urgent Priority)',
+    emailAlertBody: `======================================================
+SEMA NATIONAL CITIZEN INCIDENT DISPATCH NOTICE
+Government of Kenya - Municipal Rapid Response Command
+======================================================
+
+INCIDENT REFERENCE: SEMA-KE-8041
+PRIORITY / URGENCY: URGENT
+TARGET SLA:         2 hours
+CATEGORY:           Power & Street Lighting
+LOCATION:           Nairobi · Roysambu
+
+ASSIGNED FIELD OFFICER:
+  Officer: Eng. Dennis Kiprono
+  Email:   dennis.kiprono@kplc.co.ke
+  Team:    Kenya Power Emergency & Streetlighting Unit
+
+------------------------------------------------------
+CITIZEN INCIDENT REPORT (ORIGINAL):
+------------------------------------------------------
+"Stima imepotea hapa Roysambu karibu na TRM tangu jana usiku na transformers zinatoa cheche. Tafadhali mtusaidie haraka."
+Language: Kiswahili (Capture Method: voice)
+English Translation: "Electricity has been out here in Roysambu near TRM since last night and the transformers are sparking. Please help us urgently."
+
+------------------------------------------------------
+DISPATCH & AI ROUTING DIRECTIVES:
+------------------------------------------------------
+Routing Rationale: Active sparking transformer near TRM poses immediate fire and electrocution hazard.
+Admin Directives:  Field crew dispatched with hydraulic lift truck. Transformer isolation in progress.
+
+REQUIRED IMMEDIATE ACTIONS:
+1. Confirm receipt and mobilize ground response crew within target SLA window (2 hours).
+2. Update incident milestone status to "In Progress" in the SEMA Dispatch Console upon arrival.
+3. Submit post-intervention clearance report upon completion.
+
+Dispatch Console Access: https://sema.go.ke/admin?ref=SEMA-KE-8041
+======================================================`,
     aiClassification: {
       category: 'Power & Street Lighting',
       urgency: 'Urgent',
@@ -344,6 +444,47 @@ const submissionsStore: SubmissionRecord[] = [
     priority: 'High',
     assignedTeam: 'Nairobi / County Water & Sewerage Rapid Response',
     assignedOfficer: 'Officer Grace Mwangi',
+    assignedOfficerEmail: 'grace.mwangi@nairobiwater.co.ke',
+    emailAlertSent: true,
+    emailAlertRecipient: 'grace.mwangi@nairobiwater.co.ke',
+    emailAlertSentAt: new Date(Date.now() - 1000 * 60 * 40).toISOString(),
+    emailAlertSubject: '[SEMA DISPATCH ALERT] SEMA-KE-8042 - Water & Sanitation (High Priority)',
+    emailAlertBody: `======================================================
+SEMA NATIONAL CITIZEN INCIDENT DISPATCH NOTICE
+Government of Kenya - Municipal Rapid Response Command
+======================================================
+
+INCIDENT REFERENCE: SEMA-KE-8042
+PRIORITY / URGENCY: HIGH
+TARGET SLA:         4 hours
+CATEGORY:           Water & Sanitation
+LOCATION:           Nairobi · Umoja
+
+ASSIGNED FIELD OFFICER:
+  Officer: Officer Grace Mwangi
+  Email:   grace.mwangi@nairobiwater.co.ke
+  Team:    Nairobi / County Water & Sewerage Rapid Response
+
+------------------------------------------------------
+CITIZEN INCIDENT REPORT (ORIGINAL):
+------------------------------------------------------
+"Manze maji imelost huku Umoja Innercore for four days sasa na mabomba zimepasuka hapo kwa stage. Chanueni wasee wa maji wafix hii noma."
+Language: Sheng (Capture Method: voice)
+English Translation: "Water has been out here in Umoja Innercore for four days now and the pipes have burst near the bus stage. Alert the water maintenance team to fix this issue."
+
+------------------------------------------------------
+DISPATCH & AI ROUTING DIRECTIVES:
+------------------------------------------------------
+Routing Rationale: Burst water mains along public stage causing major water loss and street pooling.
+Admin Directives:  Assigned to Eastern Zone water maintenance crew.
+
+REQUIRED IMMEDIATE ACTIONS:
+1. Confirm receipt and mobilize ground response crew within target SLA window (4 hours).
+2. Update incident milestone status to "In Progress" in the SEMA Dispatch Console upon arrival.
+3. Submit post-intervention clearance report upon completion.
+
+Dispatch Console Access: https://sema.go.ke/admin?ref=SEMA-KE-8042
+======================================================`,
     aiClassification: {
       category: 'Water & Sanitation',
       urgency: 'High',
@@ -686,10 +827,74 @@ Rules:
     return res.json({ submission: item, classification });
   });
 
-  // 7. Admin: Assign Report to Team
+  // Email alert generator helper for assigned officers
+  function generateDispatchEmailAlert(
+    item: SubmissionRecord,
+    officerName: string,
+    officerEmail: string,
+    teamName: string
+  ): { subject: string; body: string } {
+    const urgency = item.priority || item.aiClassification?.urgency || 'Medium';
+    const sla =
+      item.aiClassification?.estimatedSLA ||
+      (urgency === 'Urgent' ? '2 hours' : urgency === 'High' ? '6 hours' : '24 hours');
+    const subject = `[SEMA DISPATCH ALERT] ${item.referenceCode} - ${item.category} (${urgency} Priority)`;
+
+    const body = `======================================================
+SEMA NATIONAL CITIZEN INCIDENT DISPATCH NOTICE
+Government of Kenya - Municipal Rapid Response Command
+======================================================
+
+INCIDENT REFERENCE: ${item.referenceCode}
+PRIORITY / URGENCY: ${urgency.toUpperCase()}
+TARGET SLA:         ${sla}
+CATEGORY:           ${item.category}
+LOCATION:           ${item.countyOrWard}
+DATE LOGGED:        ${new Date(item.createdAt).toLocaleString('en-KE', { timeZone: 'Africa/Nairobi' })} EAT
+
+ASSIGNED FIELD OFFICER:
+  Officer: ${officerName}
+  Email:   ${officerEmail}
+  Team:    ${teamName}
+
+------------------------------------------------------
+CITIZEN INCIDENT REPORT (ORIGINAL):
+------------------------------------------------------
+"${item.text}"
+Language: ${item.detectedLanguage} (Capture Method: ${item.captureMethod})
+${item.englishTranslation ? `\nEnglish Translation:\n"${item.englishTranslation}"\n` : ''}
+${item.contactInfo ? `Citizen Contact: ${item.contactInfo}` : 'Citizen Contact: Anonymous / Voice Portal'}
+
+------------------------------------------------------
+DISPATCH & AI ROUTING DIRECTIVES:
+------------------------------------------------------
+Routing Rationale: ${item.aiClassification?.rationale || 'Dispatched for immediate on-site inspection and remedial action.'}
+Admin Directives:  ${item.adminNotes || 'Proceed with standard emergency operating procedure.'}
+
+REQUIRED IMMEDIATE ACTIONS:
+1. Confirm receipt and mobilize ground response crew within the target SLA window (${sla}).
+2. Update incident milestone status to "In Progress" in the SEMA Dispatch Console upon arrival.
+3. Submit post-intervention clearance report and resolution notes upon completion.
+
+Dispatch Console Access: https://sema.go.ke/admin?ref=${item.referenceCode}
+Automated alert dispatched by SEMA Intelligent Dispatch System.
+======================================================`;
+
+    return { subject, body };
+  }
+
+  // 7. Admin: Assign Report to Team & Officer (with Automated Email Alert)
   app.patch('/api/submissions/:id/assign', (req, res) => {
     const { id } = req.params;
-    const { assignedTeam, assignedOfficer, priority, status = 'Assigned', adminNotes } = req.body;
+    const {
+      assignedTeam,
+      assignedOfficer,
+      assignedOfficerEmail,
+      priority,
+      status = 'Assigned',
+      adminNotes,
+      sendEmailAlert = true,
+    } = req.body;
 
     const item = submissionsStore.find((s) => s.id === id);
     if (!item) {
@@ -702,16 +907,59 @@ Rules:
     if (status) item.status = status;
     if (adminNotes !== undefined) item.adminNotes = adminNotes;
 
-    return res.json({ submission: item });
+    // Resolve Officer & Email
+    const matchedTeam =
+      KENYAN_RESPONSE_TEAMS.find((t) => t.name === (assignedTeam || item.assignedTeam)) ||
+      KENYAN_RESPONSE_TEAMS[0];
+    const resolvedOfficer = assignedOfficer || item.assignedOfficer || matchedTeam.leadOfficer;
+    const resolvedEmail = assignedOfficerEmail || item.assignedOfficerEmail || matchedTeam.email;
+
+    item.assignedOfficer = resolvedOfficer;
+    item.assignedOfficerEmail = resolvedEmail;
+
+    let emailAlertLog: EmailDispatchLog | null = null;
+    if (sendEmailAlert && (assignedTeam || assignedOfficer)) {
+      const emailContent = generateDispatchEmailAlert(
+        item,
+        resolvedOfficer,
+        resolvedEmail,
+        item.assignedTeam || matchedTeam.name
+      );
+
+      item.emailAlertSent = true;
+      item.emailAlertRecipient = resolvedEmail;
+      item.emailAlertSentAt = new Date().toISOString();
+      item.emailAlertSubject = emailContent.subject;
+      item.emailAlertBody = emailContent.body;
+
+      emailAlertLog = {
+        id: `email-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        submissionId: item.id,
+        referenceCode: item.referenceCode,
+        toEmail: resolvedEmail,
+        officerName: resolvedOfficer,
+        teamName: item.assignedTeam || matchedTeam.name,
+        category: item.category,
+        priority: item.priority || 'Medium',
+        subject: emailContent.subject,
+        body: emailContent.body,
+        sentAt: item.emailAlertSentAt,
+        status: 'Delivered',
+      };
+      emailDispatchLogs.unshift(emailAlertLog);
+    }
+
+    return res.json({ submission: item, emailAlert: emailAlertLog });
   });
 
-  // 8. Admin: Auto-Assign All Unassigned Reports Using AI
+  // 8. Admin: Auto-Assign All Unassigned Reports Using AI (Sends Automated Email Alerts)
   app.post('/api/submissions/auto-assign-all', async (_req, res) => {
     const unassigned = submissionsStore.filter(
       (s) => s.status === 'Received' || !s.assignedTeam
     );
 
     const updatedRecords: SubmissionRecord[] = [];
+    const createdEmailAlerts: EmailDispatchLog[] = [];
 
     for (const item of unassigned) {
       const classification = await classifyWithAI(item.text);
@@ -720,22 +968,114 @@ Rules:
       item.priority = classification.urgency;
       item.assignedTeam = classification.recommendedTeam;
 
-      // Match lead officer
+      // Match lead officer & official email
       const matchedTeam = KENYAN_RESPONSE_TEAMS.find(
         (t) => t.name === classification.recommendedTeam
-      );
-      item.assignedOfficer = matchedTeam ? matchedTeam.leadOfficer : 'Field Dispatch Desk';
+      ) || KENYAN_RESPONSE_TEAMS[0];
+
+      item.assignedOfficer = matchedTeam.leadOfficer;
+      item.assignedOfficerEmail = matchedTeam.email;
       item.status = 'Assigned';
       item.adminNotes = `AI Auto-assigned: ${classification.rationale} (Target SLA: ${classification.estimatedSLA})`;
 
+      // Dispatch automated officer email alert
+      const emailContent = generateDispatchEmailAlert(
+        item,
+        item.assignedOfficer,
+        item.assignedOfficerEmail,
+        item.assignedTeam
+      );
+
+      item.emailAlertSent = true;
+      item.emailAlertRecipient = item.assignedOfficerEmail;
+      item.emailAlertSentAt = new Date().toISOString();
+      item.emailAlertSubject = emailContent.subject;
+      item.emailAlertBody = emailContent.body;
+
+      const emailLog: EmailDispatchLog = {
+        id: `email-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        submissionId: item.id,
+        referenceCode: item.referenceCode,
+        toEmail: item.assignedOfficerEmail,
+        officerName: item.assignedOfficer,
+        teamName: item.assignedTeam,
+        category: item.category,
+        priority: item.priority,
+        subject: emailContent.subject,
+        body: emailContent.body,
+        sentAt: item.emailAlertSentAt,
+        status: 'Delivered',
+      };
+
+      emailDispatchLogs.unshift(emailLog);
+      createdEmailAlerts.push(emailLog);
       updatedRecords.push(item);
     }
 
     return res.json({
-      message: `Successfully classified and auto-assigned ${updatedRecords.length} reports.`,
+      message: `Successfully classified and auto-assigned ${updatedRecords.length} reports. Dispatched ${createdEmailAlerts.length} officer email alerts.`,
       count: updatedRecords.length,
+      emailAlertsCount: createdEmailAlerts.length,
       submissions: submissionsStore,
     });
+  });
+
+  // 8b. Admin: Manually Send or Resend Officer Email Alert
+  app.post('/api/submissions/:id/send-email-alert', (req, res) => {
+    const { id } = req.params;
+    const item = submissionsStore.find((s) => s.id === id);
+    if (!item) {
+      return res.status(404).json({ error: 'Report not found' });
+    }
+
+    const matchedTeam =
+      KENYAN_RESPONSE_TEAMS.find((t) => t.name === item.assignedTeam) || KENYAN_RESPONSE_TEAMS[0];
+    const officerName = req.body.officerName || item.assignedOfficer || matchedTeam.leadOfficer;
+    const officerEmail = req.body.officerEmail || item.assignedOfficerEmail || matchedTeam.email;
+
+    item.assignedOfficer = officerName;
+    item.assignedOfficerEmail = officerEmail;
+
+    const emailContent = generateDispatchEmailAlert(
+      item,
+      officerName,
+      officerEmail,
+      item.assignedTeam || matchedTeam.name
+    );
+
+    item.emailAlertSent = true;
+    item.emailAlertRecipient = officerEmail;
+    item.emailAlertSentAt = new Date().toISOString();
+    item.emailAlertSubject = emailContent.subject;
+    item.emailAlertBody = emailContent.body;
+
+    const emailLog: EmailDispatchLog = {
+      id: `email-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      submissionId: item.id,
+      referenceCode: item.referenceCode,
+      toEmail: officerEmail,
+      officerName,
+      teamName: item.assignedTeam || matchedTeam.name,
+      category: item.category,
+      priority: item.priority || 'Medium',
+      subject: emailContent.subject,
+      body: emailContent.body,
+      sentAt: item.emailAlertSentAt,
+      status: 'Delivered',
+    };
+    emailDispatchLogs.unshift(emailLog);
+
+    return res.json({
+      success: true,
+      message: `Automated email alert delivered to ${officerName} (${officerEmail}).`,
+      emailLog,
+      submission: item,
+    });
+  });
+
+  // 8c. Admin: Get Email Dispatch Logs
+  app.get('/api/email-dispatch-logs', (_req, res) => {
+    return res.json({ logs: emailDispatchLogs, count: emailDispatchLogs.length });
   });
 
   // 9. Admin: Update Report Status

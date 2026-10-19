@@ -30,10 +30,31 @@ export interface SubmissionRecord {
   createdAt: string;
   assignedTeam?: string;
   assignedOfficer?: string;
+  assignedOfficerEmail?: string;
   priority?: PriorityLevel;
   aiClassification?: AIClassification;
   adminNotes?: string;
   resolvedAt?: string;
+  emailAlertSent?: boolean;
+  emailAlertRecipient?: string;
+  emailAlertSentAt?: string;
+  emailAlertSubject?: string;
+  emailAlertBody?: string;
+}
+
+export interface EmailDispatchLog {
+  id: string;
+  submissionId: string;
+  referenceCode: string;
+  toEmail: string;
+  officerName: string;
+  teamName: string;
+  category: string;
+  priority: PriorityLevel;
+  subject: string;
+  body: string;
+  sentAt: string;
+  status: 'Delivered' | 'Queued' | 'Simulated';
 }
 
 export interface ResponseTeam {
@@ -42,6 +63,7 @@ export interface ResponseTeam {
   shortCode: string;
   department: string;
   leadOfficer: string;
+  email: string;
   phone: string;
   activeCount: number;
   color: 'emerald' | 'sky' | 'amber' | 'rose' | 'teal' | 'lime' | 'indigo';
@@ -54,6 +76,7 @@ export const KENYAN_RESPONSE_TEAMS: ResponseTeam[] = [
     shortCode: 'KPLC-EMG',
     department: 'Power & Street Lighting',
     leadOfficer: 'Eng. Dennis Kiprono',
+    email: 'dennis.kiprono@kplc.co.ke',
     phone: '0703 070 707',
     activeCount: 14,
     color: 'emerald',
@@ -64,6 +87,7 @@ export const KENYAN_RESPONSE_TEAMS: ResponseTeam[] = [
     shortCode: 'NCWSC-OPS',
     department: 'Water & Sanitation',
     leadOfficer: 'Officer Grace Mwangi',
+    email: 'grace.mwangi@nairobiwater.co.ke',
     phone: '0703 080 598',
     activeCount: 9,
     color: 'sky',
@@ -74,6 +98,7 @@ export const KENYAN_RESPONSE_TEAMS: ResponseTeam[] = [
     shortCode: 'KURA-RDS',
     department: 'Roads & Infrastructure',
     leadOfficer: 'Supervisor Brian Otieno',
+    email: 'brian.otieno@kura.go.ke',
     phone: '0722 000 111',
     activeCount: 12,
     color: 'amber',
@@ -84,6 +109,7 @@ export const KENYAN_RESPONSE_TEAMS: ResponseTeam[] = [
     shortCode: 'CPH-HLTH',
     department: 'Health & Medical Services',
     leadOfficer: 'Dr. Faith Wanjiku',
+    email: 'faith.wanjiku@health.go.ke',
     phone: '0711 222 333',
     activeCount: 6,
     color: 'teal',
@@ -94,6 +120,7 @@ export const KENYAN_RESPONSE_TEAMS: ResponseTeam[] = [
     shortCode: 'NEMA-CLEN',
     department: 'Waste Management',
     leadOfficer: 'Insp. Hassan Ali',
+    email: 'hassan.ali@nema.go.ke',
     phone: '0733 444 555',
     activeCount: 8,
     color: 'lime',
@@ -104,6 +131,7 @@ export const KENYAN_RESPONSE_TEAMS: ResponseTeam[] = [
     shortCode: 'NPS-SAFE',
     department: 'Public Safety & Security',
     leadOfficer: 'Sgt. John Kimani',
+    email: 'john.kimani@nps.go.ke',
     phone: '0720 999 888',
     activeCount: 16,
     color: 'rose',
@@ -114,6 +142,7 @@ export const KENYAN_RESPONSE_TEAMS: ResponseTeam[] = [
     shortCode: 'HUDUMA-REG',
     department: 'Civic & Public Services',
     leadOfficer: 'Coordinator Agnes Muthoni',
+    email: 'agnes.muthoni@hudumakenya.go.ke',
     phone: '0800 723 253',
     activeCount: 5,
     color: 'indigo',
