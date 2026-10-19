@@ -248,15 +248,18 @@ export const AdminDispatchConsole: React.FC<AdminDispatchConsoleProps> = ({
   // Filtered submissions
   const filteredSubmissions = useMemo(() => {
     return submissions.filter((item) => {
-      // Search
-      const q = searchQuery.toLowerCase();
+      // Search by reference code, status, category, urgency, location, or content
+      const q = searchQuery.toLowerCase().trim();
       const matchesSearch =
-        !searchQuery.trim() ||
+        !q ||
         item.referenceCode.toLowerCase().includes(q) ||
-        item.text.toLowerCase().includes(q) ||
+        item.status.toLowerCase().includes(q) ||
+        (item.category && item.category.toLowerCase().includes(q)) ||
+        (item.priority && item.priority.toLowerCase().includes(q)) ||
         item.countyOrWard.toLowerCase().includes(q) ||
+        item.text.toLowerCase().includes(q) ||
         (item.assignedTeam && item.assignedTeam.toLowerCase().includes(q)) ||
-        (item.category && item.category.toLowerCase().includes(q));
+        (item.assignedOfficer && item.assignedOfficer.toLowerCase().includes(q));
 
       // Status
       const matchesStatus =
@@ -690,76 +693,137 @@ export const AdminDispatchConsole: React.FC<AdminDispatchConsoleProps> = ({
         </section>
 
         {/* Filter & Search Bar */}
-        <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-3">
-          <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-            {/* Search Input */}
-            <div className="relative flex-1">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search ticket code, voice text, county/ward, or team..."
-                className="w-full pl-9 pr-3 py-2 text-xs text-slate-900 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-600"
-              />
+        <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 space-y-3.5 shadow-2xs">
+          <div>
+            <label
+              htmlFor="admin-reports-filter-input"
+              className="block text-xs font-bold text-slate-800 mb-1.5 flex items-center justify-between"
+            >
+              <span className="flex items-center gap-1.5">
+                <Search className="w-3.5 h-3.5 text-emerald-700" />
+                <span>Filter Submissions by Reference Code, Status, or Category</span>
+              </span>
+              {searchQuery && (
+                <span className="text-2xs font-mono font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                  Matching {filteredSubmissions.length} of {submissions.length} reports
+                </span>
+              )}
+            </label>
+
+            <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+              {/* Text Input Field for Reference Code, Status, or Category */}
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  id="admin-reports-filter-input"
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Filter by reference code (e.g. SEMA-KE-8041), status (In Progress, Resolved, Assigned), or category (Water, Power, Roads)..."
+                  className="w-full pl-9 pr-9 py-2.5 text-xs text-slate-900 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-600 focus:bg-white transition-colors"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-700 rounded-md cursor-pointer"
+                    title="Clear filter text"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Quick Dropdown Filters */}
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                <div className="flex items-center gap-1 text-slate-500">
+                  <SlidersHorizontal className="w-3.5 h-3.5 text-slate-400" />
+                  <span className="font-medium">Status:</span>
+                </div>
+                <select
+                  value={selectedStatus}
+                  onChange={(e) => setSelectedStatus(e.target.value)}
+                  className="px-2.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:border-emerald-600 cursor-pointer"
+                >
+                  <option value="All">All Statuses ({submissions.length})</option>
+                  <option value="Unassigned">Unassigned ({metrics.unassigned})</option>
+                  <option value="Assigned">Assigned</option>
+                  <option value="In Progress">In Progress</option>
+                  <option value="Resolved">Resolved</option>
+                </select>
+
+                <select
+                  value={selectedTeamFilter}
+                  onChange={(e) => setSelectedTeamFilter(e.target.value)}
+                  className="px-2.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:border-emerald-600 cursor-pointer"
+                >
+                  <option value="All">All Teams</option>
+                  {KENYAN_RESPONSE_TEAMS.map((t) => (
+                    <option key={t.id} value={t.name}>
+                      {t.name}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  value={selectedLanguageFilter}
+                  onChange={(e) => setSelectedLanguageFilter(e.target.value)}
+                  className="px-2.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:border-emerald-600 cursor-pointer"
+                >
+                  <option value="All">All Languages</option>
+                  <option value="English">English</option>
+                  <option value="Kiswahili">Kiswahili</option>
+                  <option value="Sheng">Sheng</option>
+                </select>
+
+                {(searchQuery || selectedStatus !== 'All' || selectedTeamFilter !== 'All' || selectedLanguageFilter !== 'All') && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchQuery('');
+                      setSelectedStatus('All');
+                      setSelectedTeamFilter('All');
+                      setSelectedLanguageFilter('All');
+                    }}
+                    className="px-2.5 py-2 text-xs font-semibold text-emerald-800 hover:text-emerald-950 bg-emerald-50 hover:bg-emerald-100/70 border border-emerald-200 rounded-lg transition-colors cursor-pointer"
+                  >
+                    Reset Filters
+                  </button>
+                )}
+              </div>
             </div>
 
-            {/* Quick Segmented Filters */}
-            <div className="flex flex-wrap items-center gap-2 text-xs">
-              <div className="flex items-center gap-1">
-                <SlidersHorizontal className="w-3.5 h-3.5 text-slate-400" />
-                <span className="text-slate-500 font-medium">Status:</span>
-              </div>
-              <select
-                value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}
-                className="px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:border-emerald-600"
-              >
-                <option value="All">All Statuses ({submissions.length})</option>
-                <option value="Unassigned">Unassigned ({metrics.unassigned})</option>
-                <option value="Assigned">Assigned</option>
-                <option value="In Progress">In Progress</option>
-                <option value="Resolved">Resolved</option>
-              </select>
-
-              <select
-                value={selectedTeamFilter}
-                onChange={(e) => setSelectedTeamFilter(e.target.value)}
-                className="px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:border-emerald-600"
-              >
-                <option value="All">All Teams</option>
-                {KENYAN_RESPONSE_TEAMS.map((t) => (
-                  <option key={t.id} value={t.name}>
-                    {t.name}
-                  </option>
-                ))}
-              </select>
-
-              <select
-                value={selectedLanguageFilter}
-                onChange={(e) => setSelectedLanguageFilter(e.target.value)}
-                className="px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:border-emerald-600"
-              >
-                <option value="All">All Languages</option>
-                <option value="English">English</option>
-                <option value="Kiswahili">Kiswahili</option>
-                <option value="Sheng">Sheng</option>
-              </select>
-
-              {(searchQuery || selectedStatus !== 'All' || selectedTeamFilter !== 'All' || selectedLanguageFilter !== 'All') && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSearchQuery('');
-                    setSelectedStatus('All');
-                    setSelectedTeamFilter('All');
-                    setSelectedLanguageFilter('All');
-                  }}
-                  className="px-2.5 py-1.5 text-xs text-slate-500 hover:text-slate-800 underline cursor-pointer"
-                >
-                  Clear Filters
-                </button>
-              )}
+            {/* Quick Filter Suggestion Chips */}
+            <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-slate-100 text-xs">
+              <span className="text-2xs text-slate-400 font-medium mr-1">Quick Filters:</span>
+              {[
+                { label: 'Reference: SEMA-KE-', value: 'SEMA-KE-' },
+                { label: 'Category: Water', value: 'Water & Sanitation' },
+                { label: 'Category: Power', value: 'Power & Street Lighting' },
+                { label: 'Category: Roads', value: 'Roads & Infrastructure' },
+                { label: 'Status: In Progress', value: 'In Progress' },
+                { label: 'Status: Resolved', value: 'Resolved' },
+                { label: 'Status: Assigned', value: 'Assigned' },
+                { label: 'Urgent Only', value: 'Urgent' },
+              ].map((chip) => {
+                const isActive = searchQuery === chip.value;
+                return (
+                  <button
+                    key={chip.label}
+                    type="button"
+                    onClick={() => {
+                      setSearchQuery((prev) => (prev === chip.value ? '' : chip.value));
+                    }}
+                    className={`px-2 py-1 rounded-md text-2xs font-medium transition-colors cursor-pointer whitespace-nowrap ${
+                      isActive
+                        ? 'bg-emerald-700 text-white font-semibold shadow-2xs'
+                        : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                    }`}
+                  >
+                    {chip.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
