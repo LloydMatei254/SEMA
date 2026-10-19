@@ -737,6 +737,82 @@ Rules:
     return res.json({ submission: item });
   });
 
+  // 10. Admin: AI-Powered Issue Analytics & Synthesis
+  app.get('/api/admin/analytics', async (_req, res) => {
+    const total = submissionsStore.length;
+    const categoryCounts: Record<string, number> = {};
+    const urgencyCounts: Record<string, number> = { Urgent: 0, High: 0, Medium: 0, Routine: 0 };
+    const langCounts: Record<string, number> = { English: 0, Kiswahili: 0, Sheng: 0 };
+
+    for (const sub of submissionsStore) {
+      const cat = sub.category || 'Civic & Public Services';
+      categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
+
+      const urg = sub.priority || 'Medium';
+      urgencyCounts[urg] = (urgencyCounts[urg] || 0) + 1;
+
+      const lang = sub.detectedLanguage || 'English';
+      langCounts[lang] = (langCounts[lang] || 0) + 1;
+    }
+
+    const categories = Object.entries(categoryCounts)
+      .map(([name, count]) => ({
+        name,
+        count,
+        percentage: total > 0 ? Math.round((count / total) * 100) : 0,
+      }))
+      .sort((a, b) => b.count - a.count);
+
+    const topCategory = categories[0]?.name || 'Water & Sanitation';
+    const topCount = categories[0]?.count || 0;
+
+    let aiBrief = `SEMA AI Incident Synthesis: Analyzed ${total} citizen reports across Kenya. Primary civic demand centers on "${topCategory}" (${topCount} incidents). Immediate focus is directed towards rapid fault isolation and multi-agency field dispatch.`;
+    let recommendations = [
+      `Pre-deploy KeRRA road clearance teams along heavily reported arterial routes.`,
+      `Audit Nairobi Water rapid response dispatch times to match the 4-hour burst pipe SLA.`,
+      `Maintain multilingual SMS/WhatsApp notification channels in Kiswahili and Sheng to keep citizens updated.`,
+    ];
+
+    const ai = getGenAIClient();
+    if (ai) {
+      try {
+        const prompt = `You are the Chief Incident Dispatch Analyst for Kenya's civic platform SEMA.
+We have ${total} citizen reports across these categories: ${JSON.stringify(categories)}.
+Urgency counts: ${JSON.stringify(urgencyCounts)}.
+Languages used: ${JSON.stringify(langCounts)}.
+
+Provide a concise 2-sentence executive summary and 3 bullet point actionable recommendations for county dispatch directors. Return JSON with keys: "executiveSummary" (string) and "recommendations" (array of 3 strings).`;
+
+        const aiResponse = await ai.models.generateContent({
+          model: 'gemini-3.8-flash',
+          contents: prompt,
+          config: {
+            responseMimeType: 'application/json',
+          },
+        });
+
+        if (aiResponse.text) {
+          const parsed = JSON.parse(aiResponse.text);
+          if (parsed.executiveSummary) aiBrief = parsed.executiveSummary;
+          if (Array.isArray(parsed.recommendations)) recommendations = parsed.recommendations;
+        }
+      } catch (err) {
+        console.warn('AI analytics generation notice:', err);
+      }
+    }
+
+    return res.json({
+      totalReports: total,
+      categories,
+      urgencyCounts,
+      langCounts,
+      executiveSummary: aiBrief,
+      recommendations,
+      generatedAt: new Date().toISOString(),
+      aiPowered: Boolean(ai),
+    });
+  });
+
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
       server: { middlewareMode: true },
