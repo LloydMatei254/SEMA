@@ -23,6 +23,8 @@ import {
   Check,
   Copy,
   ShieldAlert,
+  Download,
+  FileSpreadsheet,
 } from 'lucide-react';
 import {
   SubmissionRecord,
@@ -51,6 +53,7 @@ export const AdminDispatchConsole: React.FC<AdminDispatchConsoleProps> = ({
   const [selectedLanguageFilter, setSelectedLanguageFilter] = useState<string>('All');
   const [isAutoAssigningAll, setIsAutoAssigningAll] = useState(false);
   const [autoAssignSuccessMessage, setAutoAssignSuccessMessage] = useState<string | null>(null);
+  const [exportSuccessMessage, setExportSuccessMessage] = useState<string | null>(null);
   const [classifyingId, setClassifyingId] = useState<string | null>(null);
 
   // Selected report for detailed dispatch modal
@@ -525,6 +528,71 @@ export const AdminDispatchConsole: React.FC<AdminDispatchConsoleProps> = ({
     }
   };
 
+  // Export current submissions table as CSV file
+  const handleExportCSV = () => {
+    const listToExport = filteredSubmissions.length > 0 ? filteredSubmissions : submissions;
+    if (listToExport.length === 0) return;
+
+    const headers = [
+      'Reference Code',
+      'Created At (UTC)',
+      'Status',
+      'Priority',
+      'Category',
+      'County / Ward',
+      'Assigned Team',
+      'Lead Officer',
+      'Language',
+      'Capture Method',
+      'Citizen Report Text',
+      'English Translation',
+      'Citizen Contact',
+      'Target SLA',
+      'AI Routing Rationale',
+      'Admin Notes',
+      'Resolved At',
+    ];
+
+    const escapeCsv = (val: unknown): string => {
+      if (val === undefined || val === null) return '""';
+      const str = String(val).replace(/"/g, '""');
+      return `"${str}"`;
+    };
+
+    const rows = listToExport.map((item) => [
+      escapeCsv(item.referenceCode),
+      escapeCsv(item.createdAt),
+      escapeCsv(item.status),
+      escapeCsv(item.priority || item.aiClassification?.urgency || 'Medium'),
+      escapeCsv(item.category || item.aiClassification?.category || 'Civic & Public Services'),
+      escapeCsv(item.countyOrWard),
+      escapeCsv(item.assignedTeam || 'Unassigned'),
+      escapeCsv(item.assignedOfficer || 'Pending'),
+      escapeCsv(item.detectedLanguage),
+      escapeCsv(item.captureMethod),
+      escapeCsv(item.text),
+      escapeCsv(item.englishTranslation || ''),
+      escapeCsv(item.contactInfo || ''),
+      escapeCsv(item.aiClassification?.estimatedSLA || ''),
+      escapeCsv(item.aiClassification?.rationale || ''),
+      escapeCsv(item.adminNotes || ''),
+      escapeCsv(item.resolvedAt || ''),
+    ]);
+
+    const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\r\n');
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    const dateStr = new Date().toISOString().slice(0, 10);
+    link.download = `SEMA_Citizen_Reports_Export_${dateStr}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    setExportSuccessMessage(`Successfully exported ${listToExport.length} reports to CSV (${link.download})`);
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col justify-between">
       {/* Admin Top Bar */}
@@ -549,6 +617,17 @@ export const AdminDispatchConsole: React.FC<AdminDispatchConsoleProps> = ({
           </div>
 
           <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleExportCSV}
+              disabled={filteredSubmissions.length === 0}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-700 hover:text-slate-900 bg-white border border-slate-200 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors cursor-pointer"
+              title="Export current submissions to CSV file"
+            >
+              <Download className="w-3.5 h-3.5 text-slate-500" />
+              <span className="hidden sm:inline">Export CSV</span>
+            </button>
+
             <button
               type="button"
               onClick={() => onRefreshSubmissions()}
@@ -599,6 +678,26 @@ export const AdminDispatchConsole: React.FC<AdminDispatchConsoleProps> = ({
               type="button"
               onClick={() => setAutoAssignSuccessMessage(null)}
               className="text-emerald-700 hover:text-emerald-950 font-bold"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+
+        {/* Banner Alert for CSV Export Success */}
+        {exportSuccessMessage && (
+          <div
+            className="bg-emerald-50 border border-emerald-300 rounded-xl p-4 flex items-start justify-between gap-4 text-xs text-emerald-950 animate-in fade-in"
+            role="alert"
+          >
+            <div className="flex items-center gap-2.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
+              <span className="font-medium">{exportSuccessMessage}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setExportSuccessMessage(null)}
+              className="text-emerald-700 hover:text-emerald-950 font-bold cursor-pointer"
             >
               Dismiss
             </button>
@@ -830,13 +929,30 @@ export const AdminDispatchConsole: React.FC<AdminDispatchConsoleProps> = ({
 
         {/* Submissions Incident Table */}
         <section className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
-          <div className="px-5 py-3.5 border-b border-slate-200 flex items-center justify-between">
-            <h3 className="text-sm font-bold text-slate-900">
-              Citizen Incidents Queue ({filteredSubmissions.length} of {submissions.length})
-            </h3>
-            <span className="text-xs text-slate-500">
-              Live updates from voice &amp; text channels
-            </span>
+          <div className="px-5 py-3.5 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <span>Citizen Incidents Queue</span>
+                <span className="text-xs font-mono font-normal text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
+                  {filteredSubmissions.length} of {submissions.length}
+                </span>
+              </h3>
+              <p className="text-2xs text-slate-500 mt-0.5">
+                Live updates from voice &amp; text channels
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleExportCSV}
+                disabled={filteredSubmissions.length === 0}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100/80 border border-emerald-200 rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-2xs"
+                title="Export current table to CSV file for record-keeping"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-700" />
+                <span>Export Table to CSV ({filteredSubmissions.length})</span>
+              </button>
+            </div>
           </div>
 
           {filteredSubmissions.length === 0 ? (
