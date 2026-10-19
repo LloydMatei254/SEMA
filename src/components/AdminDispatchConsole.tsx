@@ -40,6 +40,82 @@ import {
   EmailDispatchLog,
 } from '../types';
 
+export interface StatusLegendItem {
+  status: ReportStatus;
+  label: string;
+  dotColor: string;
+  badgeBg: string;
+  badgeBorder: string;
+  badgeText: string;
+  activeBg: string;
+  ringColor: string;
+  textColor: string;
+  description: string;
+}
+
+export const STATUS_LEGEND_CONFIG: StatusLegendItem[] = [
+  {
+    status: 'Received',
+    label: 'Received',
+    dotColor: 'bg-amber-500',
+    badgeBg: 'bg-amber-50',
+    badgeBorder: 'border-amber-300',
+    badgeText: 'text-amber-800',
+    activeBg: 'bg-amber-100',
+    ringColor: 'ring-amber-400',
+    textColor: 'text-amber-950',
+    description: 'Awaiting triage & field team assignment',
+  },
+  {
+    status: 'Assigned',
+    label: 'Assigned',
+    dotColor: 'bg-indigo-500',
+    badgeBg: 'bg-indigo-50',
+    badgeBorder: 'border-indigo-300',
+    badgeText: 'text-indigo-800',
+    activeBg: 'bg-indigo-100',
+    ringColor: 'ring-indigo-400',
+    textColor: 'text-indigo-950',
+    description: 'Dispatched to specialized agency & lead officer',
+  },
+  {
+    status: 'In Progress',
+    label: 'In Progress',
+    dotColor: 'bg-sky-500',
+    badgeBg: 'bg-sky-50',
+    badgeBorder: 'border-sky-300',
+    badgeText: 'text-sky-800',
+    activeBg: 'bg-sky-100',
+    ringColor: 'ring-sky-400',
+    textColor: 'text-sky-950',
+    description: 'Field crew mobilized & actively intervening',
+  },
+  {
+    status: 'Resolved',
+    label: 'Resolved',
+    dotColor: 'bg-emerald-500',
+    badgeBg: 'bg-emerald-50',
+    badgeBorder: 'border-emerald-300',
+    badgeText: 'text-emerald-800',
+    activeBg: 'bg-emerald-100',
+    ringColor: 'ring-emerald-400',
+    textColor: 'text-emerald-950',
+    description: 'Public issue remedied & verified on site',
+  },
+  {
+    status: 'Closed',
+    label: 'Closed',
+    dotColor: 'bg-slate-400',
+    badgeBg: 'bg-slate-100',
+    badgeBorder: 'border-slate-300',
+    badgeText: 'text-slate-700',
+    activeBg: 'bg-slate-200',
+    ringColor: 'ring-slate-300',
+    textColor: 'text-slate-900',
+    description: 'Administrative sign-off completed & archived',
+  },
+];
+
 interface AdminDispatchConsoleProps {
   submissions: SubmissionRecord[];
   onUpdateSubmission: (updated: SubmissionRecord) => void;
@@ -263,6 +339,23 @@ export const AdminDispatchConsole: React.FC<AdminDispatchConsoleProps> = ({
     const urgentCount = submissions.filter((s) => s.priority === 'Urgent').length;
     const emailAlertsSent = submissions.filter((s) => s.emailAlertSent).length;
     return { total, unassigned, inProgress, resolved, urgentCount, emailAlertsSent };
+  }, [submissions]);
+
+  // Status counts for the visual status legend
+  const statusCounts = useMemo(() => {
+    const counts: Record<ReportStatus, number> = {
+      Received: 0,
+      Assigned: 0,
+      'In Progress': 0,
+      Resolved: 0,
+      Closed: 0,
+    };
+    for (const s of submissions) {
+      if (counts[s.status] !== undefined) {
+        counts[s.status]++;
+      }
+    }
+    return counts;
   }, [submissions]);
 
   // Filtered submissions
@@ -1193,6 +1286,69 @@ Automated alert dispatched by SEMA Intelligent Dispatch System.
             </div>
           </div>
 
+          {/* Visual Status Legend Bar */}
+          <div className="bg-slate-50/90 border-b border-slate-200 px-5 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div className="flex flex-wrap items-center gap-2.5 sm:gap-4">
+              <span className="text-2xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5 shrink-0">
+                <SlidersHorizontal className="w-3 h-3 text-slate-400" />
+                <span>Lifecycle Stages:</span>
+              </span>
+
+              {/* Status items with color-coded dots, descriptions and interactive filter toggle */}
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                {STATUS_LEGEND_CONFIG.map((item) => {
+                  const isSelected = selectedStatus === item.status;
+                  const count = statusCounts[item.status] || 0;
+
+                  return (
+                    <button
+                      key={item.status}
+                      type="button"
+                      onClick={() => {
+                        setSelectedStatus((prev) => (prev === item.status ? 'All' : item.status));
+                      }}
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-2xs transition-all cursor-pointer select-none border ${
+                        isSelected
+                          ? `${item.activeBg} ${item.badgeBorder} ${item.textColor} font-bold ring-2 ${item.ringColor} shadow-2xs`
+                          : 'bg-white hover:bg-slate-100/80 text-slate-700 border-slate-200/80 font-medium'
+                      }`}
+                      title={`${item.status}: ${item.description} (Click to filter queue)`}
+                    >
+                      <span
+                        className={`w-2.5 h-2.5 rounded-full shrink-0 ${item.dotColor} ${
+                          item.status === 'In Progress' ? 'animate-pulse' : ''
+                        }`}
+                      />
+                      <span>{item.label}</span>
+                      <span
+                        className={`font-mono text-[10px] px-1 py-0.2 rounded font-semibold ${
+                          isSelected ? 'bg-white/80 text-slate-900' : 'bg-slate-100 text-slate-500'
+                        }`}
+                      >
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 text-2xs text-slate-500">
+              <span className="hidden lg:inline text-slate-400 italic">
+                Click any stage badge to filter queue
+              </span>
+              {selectedStatus !== 'All' && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedStatus('All')}
+                  className="font-bold text-emerald-700 hover:text-emerald-900 underline cursor-pointer"
+                >
+                  Clear Status Filter ({selectedStatus})
+                </button>
+              )}
+            </div>
+          </div>
+
           {filteredSubmissions.length === 0 ? (
             <div className="p-12 text-center space-y-3">
               <Bot className="w-8 h-8 text-slate-300 mx-auto" />
@@ -1219,7 +1375,7 @@ Automated alert dispatched by SEMA Intelligent Dispatch System.
                     <th className="py-3 px-4 min-w-[280px]">Citizen Voice Statement</th>
                     <th className="py-3 px-4 min-w-[200px]">AI Classification &amp; Urgency</th>
                     <th className="py-3 px-4 min-w-[220px]">Assigned Team &amp; Officer</th>
-                    <th className="py-3 px-4">Status</th>
+                    <th className="py-3 px-4">Status &amp; Stage</th>
                     <th className="py-3 px-4 text-right">Actions</th>
                   </tr>
                 </thead>
@@ -1231,9 +1387,17 @@ Automated alert dispatched by SEMA Intelligent Dispatch System.
                     return (
                       <tr
                         key={report.id}
-                        className={`hover:bg-slate-50/80 transition-colors ${
-                          isUrgent ? 'bg-red-50/30' : ''
-                        }`}
+                        className={`hover:bg-slate-50/80 transition-colors border-l-4 ${
+                          report.status === 'Resolved'
+                            ? 'border-l-emerald-500'
+                            : report.status === 'In Progress'
+                            ? 'border-l-sky-500 bg-sky-50/10'
+                            : report.status === 'Assigned'
+                            ? 'border-l-indigo-500'
+                            : report.status === 'Closed'
+                            ? 'border-l-slate-300'
+                            : 'border-l-amber-500'
+                        } ${isUrgent ? 'bg-red-50/30' : ''}`}
                       >
                         {/* 1. Ticket Code & Location */}
                         <td className="py-3.5 px-4 align-top space-y-1">
@@ -1369,29 +1533,53 @@ Automated alert dispatched by SEMA Intelligent Dispatch System.
                           )}
                         </td>
 
-                        {/* 5. Status Selector */}
-                        <td className="py-3.5 px-4 align-top">
-                          <select
-                            value={report.status}
-                            onChange={(e) =>
-                              handleQuickStatusChange(report, e.target.value as ReportStatus)
-                            }
-                            className={`px-2 py-1 rounded text-xs font-semibold border cursor-pointer ${
-                              report.status === 'Resolved' || report.status === 'Closed'
-                                ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
-                                : report.status === 'In Progress'
-                                ? 'bg-sky-50 text-sky-800 border-sky-300'
-                                : report.status === 'Assigned'
-                                ? 'bg-indigo-50 text-indigo-800 border-indigo-300'
-                                : 'bg-amber-50 text-amber-800 border-amber-300'
-                            }`}
-                          >
-                            <option value="Received">Received</option>
-                            <option value="Assigned">Assigned</option>
-                            <option value="In Progress">In Progress</option>
-                            <option value="Resolved">Resolved</option>
-                            <option value="Closed">Closed</option>
-                          </select>
+                        {/* 5. Status Selector with Visual Status Dot */}
+                        <td className="py-3.5 px-4 align-top space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`w-2.5 h-2.5 rounded-full shrink-0 shadow-2xs ${
+                                report.status === 'Resolved'
+                                  ? 'bg-emerald-500'
+                                  : report.status === 'In Progress'
+                                  ? 'bg-sky-500 ring-2 ring-sky-300 animate-pulse'
+                                  : report.status === 'Assigned'
+                                  ? 'bg-indigo-500'
+                                  : report.status === 'Closed'
+                                  ? 'bg-slate-400'
+                                  : 'bg-amber-500 ring-2 ring-amber-300'
+                              }`}
+                              title={`Current stage: ${report.status}`}
+                              aria-hidden="true"
+                            />
+                            <select
+                              value={report.status}
+                              onChange={(e) =>
+                                handleQuickStatusChange(report, e.target.value as ReportStatus)
+                              }
+                              className={`px-2 py-1 rounded text-xs font-semibold border cursor-pointer ${
+                                report.status === 'Resolved' || report.status === 'Closed'
+                                  ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                                  : report.status === 'In Progress'
+                                  ? 'bg-sky-50 text-sky-800 border-sky-300'
+                                  : report.status === 'Assigned'
+                                  ? 'bg-indigo-50 text-indigo-800 border-indigo-300'
+                                  : 'bg-amber-50 text-amber-800 border-amber-300'
+                              }`}
+                            >
+                              <option value="Received">Received</option>
+                              <option value="Assigned">Assigned</option>
+                              <option value="In Progress">In Progress</option>
+                              <option value="Resolved">Resolved</option>
+                              <option value="Closed">Closed</option>
+                            </select>
+                          </div>
+                          <p className="text-[10px] text-slate-500 pl-4.5 font-medium">
+                            {report.status === 'Received' && 'Awaiting triage'}
+                            {report.status === 'Assigned' && 'Dispatched to team'}
+                            {report.status === 'In Progress' && 'Active intervention'}
+                            {report.status === 'Resolved' && 'Resolution confirmed'}
+                            {report.status === 'Closed' && 'Archived cycle'}
+                          </p>
                         </td>
 
                         {/* 6. Action Buttons */}
