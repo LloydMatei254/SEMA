@@ -438,8 +438,28 @@ Rules:
         });
         rawTranscript = (response.text || '').trim();
       } catch (geminiErr: any) {
-        console.warn('Gemini 3.5 transcribe notice:', geminiErr?.message || 'Using client speech');
-        rawTranscript = fallbackText;
+        console.warn('Gemini transcribe fallback attempt with gemini-3.8-flash:', geminiErr?.message);
+        try {
+          const fallbackResponse = await ai.models.generateContent({
+            model: 'gemini-3.8-flash',
+            contents: {
+              parts: [
+                {
+                  inlineData: {
+                    mimeType,
+                    data: cleanBase64,
+                  },
+                },
+                {
+                  text: promptText,
+                },
+              ],
+            },
+          });
+          rawTranscript = (fallbackResponse.text || '').trim();
+        } catch {
+          rawTranscript = fallbackText;
+        }
       }
 
       const finalTranscript = rawTranscript || fallbackText;

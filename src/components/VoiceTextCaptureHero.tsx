@@ -290,28 +290,33 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
         recognitionRef.current.onend = null;
         recognitionRef.current.onerror = null;
         recognitionRef.current.onresult = null;
-        recognitionRef.current.abort();
+        recognitionRef.current.stop();
       } catch {
-        // ignore
+        try {
+          recognitionRef.current.abort();
+        } catch {}
       }
       recognitionRef.current = null;
     }
     if (activeMediaStreamRef.current) {
       try {
         activeMediaStreamRef.current.getTracks().forEach((track) => track.stop());
-      } catch {
-        // ignore
-      }
+      } catch {}
       activeMediaStreamRef.current = null;
+    }
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      try {
+        mediaRecorderRef.current.stop();
+      } catch {}
+      mediaRecorderRef.current = null;
     }
     if (audioContextRef.current) {
       try {
         audioContextRef.current.close();
-      } catch {
-        // ignore
-      }
+      } catch {}
       audioContextRef.current = null;
     }
+    setAudioLevels([20, 32, 24, 40, 26, 36, 22, 28]);
   }, []);
 
   // Cleanup on unmount
@@ -387,18 +392,48 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
       typeof navigator !== 'undefined' && navigator.language ? navigator.language : 'en-US';
 
     if (hint === 'sw') {
-      return ['sw', 'sw-TZ', 'sw-KE', browserLang, 'en-US'];
+      return ['sw-KE', 'sw-TZ', 'en-KE', 'en-US'];
     }
     if (hint === 'sheng') {
-      return ['sw', 'sw-TZ', browserLang, 'en-US'];
+      return ['en-KE', 'sw-KE', 'en-US'];
     }
     if (hint === 'en') {
-      return ['en-US', 'en-GB', 'en-KE', browserLang];
+      return ['en-KE', 'en-US', 'en-GB'];
     }
-    // 'auto': prioritize user's actual browser language first, then en-US, sw, and en-GB
-    return [browserLang, 'en-US', 'sw', 'en-GB'];
+    // 'auto': prioritize Kenyan English / browser language / Swahili
+    if (browserLang.toLowerCase().startsWith('sw')) {
+      return ['sw-KE', 'sw-TZ', 'en-KE', 'en-US'];
+    }
+    return [browserLang, 'en-KE', 'en-US', 'sw-KE'];
   };
 
+  // Start animated sound level visualizer without audio hardware contention
+  const startVisualizerAnimation = () => {
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+    }
+    const animate = () => {
+      if (!isRecordingStateRef.current) return;
+      const isSpeakingNow = Boolean(currentSessionInterimRef.current.trim());
+      const baseHeight = isSpeakingNow ? 42 : 18;
+      const variance = isSpeakingNow ? 52 : 14;
+
+      setAudioLevels([
+        baseHeight + Math.round(Math.random() * variance * 0.7),
+        baseHeight + Math.round(Math.random() * variance * 1.0),
+        baseHeight + Math.round(Math.random() * variance * 0.8),
+        baseHeight + Math.round(Math.random() * variance * 0.95),
+        baseHeight + Math.round(Math.random() * variance * 0.75),
+        baseHeight + Math.round(Math.random() * variance * 0.9),
+        baseHeight + Math.round(Math.random() * variance * 0.6),
+        baseHeight + Math.round(Math.random() * variance * 0.8),
+      ]);
+      animationFrameRef.current = requestAnimationFrame(animate);
+    };
+    animationFrameRef.current = requestAnimationFrame(animate);
+  };
+
+  // Fallback for non-WebSpeech browsers (e.g. Firefox) to record audio
   const startBackgroundAudioCapture = async () => {
     try {
       const mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -460,7 +495,7 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
         recorder.start(250);
       }
 
-      // Connect sound level frequency analyser for live waveform
+      // Connect frequency analyser for Firefox / fallback
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
       if (AudioCtx) {
         const audioCtx = new AudioCtx();
@@ -483,19 +518,22 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
         updateLevels();
       }
     } catch (err: any) {
-      console.warn('Background microphone capture notice:', err);
+      console.warn('Microphone capture error:', err);
+      setVoiceNotice('Microphone access was denied. Please allow microphone permissions in your browser.');
     }
   };
 
-  const launchRecognition = (candidateIndex: number) => {
+  // Launch Chrome/Edge/Safari Web Speech Recognition with full audio isolation
+  const launchRecognition = (candidateIndex = 0) => {
     if (!isRecordingStateRef.current) return;
     const SpeechRec =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
     if (!SpeechRec) {
       setVoiceNotice(
-        'Note: Live speech recognition in the browser requires Chrome, Edge, or Safari. Audio is recorded via microphone; you can also type directly or try our Sample Voices.'
+        'Tip: Live in-browser speech recognition is natively supported in Chrome, Edge, and Safari. Microphone audio is recorded, or you can type directly.'
       );
+      startBackgroundAudioCapture();
       return;
     }
 
@@ -520,6 +558,10 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
       recognition.maxAlternatives = 1;
       recognition.lang = chosenLang;
 
+      recognition.onstart = () => {
+        setVoiceNotice(null);
+      };
+
       recognition.onresult = (event: any) => {
         let sFinal = '';
         let sInterim = '';
@@ -537,11 +579,11 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
         currentSessionFinalRef.current = sFinal;
         currentSessionInterimRef.current = sInterim;
 
-        const base = baseTextAtRecordStartRef.current;
-        const persisted = persistedFinalTextRef.current;
+        const base = baseTextAtRecordStartRef.current.trim();
+        const persisted = persistedFinalTextRef.current.trim();
         const totalFinal = [base, persisted, sFinal].filter(Boolean).join(' ').trim();
 
-        // Immediately update state and ref so it shows live in the text box
+        // Immediately update state and ref so it shows live in the text box as you speak
         setText(totalFinal);
         currentTextRef.current = totalFinal;
 
@@ -557,7 +599,7 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
 
       recognition.onerror = (err: any) => {
         const errType = err?.error;
-        console.warn('Speech recognition notice:', errType, chosenLang);
+        console.warn('Speech recognition status:', errType, chosenLang);
 
         if (
           (errType === 'language-not-supported' || errType === 'bad-grammar') &&
@@ -568,13 +610,17 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
             if (isRecordingStateRef.current) {
               launchRecognition(candidateIndex + 1);
             }
-          }, 50);
+          }, 60);
           return;
         }
 
         if (errType === 'not-allowed') {
           setVoiceNotice(
-            'Microphone access was blocked for Speech Recognition. Check your browser site permissions to allow speech directly into the box.'
+            'Microphone access was blocked for Speech Recognition. Click the camera/microphone icon in your browser address bar to allow permissions.'
+          );
+        } else if (errType === 'network') {
+          setVoiceNotice(
+            'Speech recognition network service is temporarily unavailable. You can type directly or try our Sample Voices.'
           );
         }
       };
@@ -595,26 +641,29 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
         setInterimTranscript('');
         interimTranscriptRef.current = '';
 
-        // If still recording, restart recognition cleanly
+        // If still in recording mode, restart cleanly after small interval
         if (isRecordingStateRef.current) {
           setTimeout(() => {
             if (isRecordingStateRef.current) {
               launchRecognition(candidateIndex);
             }
-          }, 80);
+          }, 100);
         }
       };
 
       recognition.start();
       recognitionRef.current = recognition;
     } catch (recErr) {
-      console.warn('SpeechRecognition launch error:', recErr);
+      console.warn('SpeechRecognition launch exception:', recErr);
       if (candidateIndex + 1 < langCandidates.length) {
         setTimeout(() => {
           if (isRecordingStateRef.current) {
             launchRecognition(candidateIndex + 1);
           }
-        }, 100);
+        }, 120);
+      } else {
+        // Fallback to MediaRecorder audio capture
+        startBackgroundAudioCapture();
       }
     }
   };
@@ -641,11 +690,17 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
       setRecordingSeconds((prev) => prev + 1);
     }, 1000);
 
-    // 1. Launch speech recognition IMMEDIATELY and SYNCHRONOUSLY to preserve browser user-activation context!
-    launchRecognition(0);
+    const SpeechRec =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
-    // 2. Concurrently start background audio capture for level visualizer & optional audio record
-    startBackgroundAudioCapture();
+    if (SpeechRec) {
+      // Chrome/Edge/Safari: Exclusive SpeechRecognition for optimal live transcription without device conflict
+      startVisualizerAnimation();
+      launchRecognition(0);
+    } else {
+      // Non-supporting browsers (Firefox): capture audio via getUserMedia
+      startBackgroundAudioCapture();
+    }
   };
 
   const stopRecording = () => {
@@ -667,31 +722,15 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
       currentTextRef.current = fullFinal;
       setDetectedLanguage(detectClientLanguage(fullFinal));
       setCaptureMethod('voice');
+    } else if (!base) {
+      setVoiceNotice(
+        'No words were detected. Check your microphone volume, speak clearly into the mic, or click any "Try Sample Voice" button below to test.'
+      );
     }
     setInterimTranscript('');
     interimTranscriptRef.current = '';
 
-    if (recognitionRef.current) {
-      try {
-        recognitionRef.current.onend = null;
-        recognitionRef.current.onerror = null;
-        recognitionRef.current.onresult = null;
-        recognitionRef.current.stop();
-      } catch {
-        // ignore
-      }
-      recognitionRef.current = null;
-    }
-
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      try {
-        mediaRecorderRef.current.stop();
-      } catch {
-        // ignore
-      }
-    } else {
-      stopAllAudioResources();
-    }
+    stopAllAudioResources();
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
