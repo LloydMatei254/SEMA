@@ -206,6 +206,15 @@ export default function App() {
     if (typeof window !== 'undefined') {
       const hash = window.location.hash;
       const params = new URLSearchParams(window.location.search);
+      if (
+        hash === '#customer-portal' ||
+        hash === '#portal' ||
+        hash === '#customer' ||
+        params.get('view') === 'customer' ||
+        params.get('view') === 'portal'
+      ) {
+        return 'citizen';
+      }
       if (hash === '#admin' || params.get('view') === 'admin') {
         return 'admin';
       }
@@ -257,18 +266,60 @@ export default function App() {
     fetchSubmissionsFromApi();
   }, [fetchSubmissionsFromApi]);
 
-  // Handle Hash Changes for URL deep linking
+  // Handle Hash Changes for URL deep linking & Customer Portal direct access
   useEffect(() => {
-    const handleHashChange = () => {
+    const handleNavigation = () => {
       const hash = window.location.hash;
-      if (hash === '#admin') {
-        setCurrentView('admin');
-      } else if (hash === '#portal' || hash === '#top') {
+      const params = new URLSearchParams(window.location.search);
+      if (
+        hash === '#customer-portal' ||
+        hash === '#portal' ||
+        hash === '#customer' ||
+        hash === '#top' ||
+        params.get('view') === 'customer' ||
+        params.get('view') === 'portal'
+      ) {
         setCurrentView('citizen');
+        setTimeout(() => {
+          const el =
+            document.getElementById('customer-portal') ||
+            document.getElementById('voice-capture') ||
+            document.getElementById('top');
+          el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 150);
+      } else if (hash === '#admin' || params.get('view') === 'admin') {
+        setCurrentView('admin');
       }
     };
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
+
+    window.addEventListener('hashchange', handleNavigation);
+    window.addEventListener('popstate', handleNavigation);
+
+    // Initial check on mount: if opened directly with customer-portal hash/param, scroll smoothly to the box
+    if (typeof window !== 'undefined') {
+      const initialHash = window.location.hash;
+      const initialParams = new URLSearchParams(window.location.search);
+      if (
+        initialHash === '#customer-portal' ||
+        initialHash === '#portal' ||
+        initialHash === '#customer' ||
+        initialParams.get('view') === 'customer' ||
+        initialParams.get('view') === 'portal'
+      ) {
+        setTimeout(() => {
+          const el =
+            document.getElementById('customer-portal') ||
+            document.getElementById('voice-capture') ||
+            document.getElementById('top');
+          el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 300);
+      }
+    }
+
+    return () => {
+      window.removeEventListener('hashchange', handleNavigation);
+      window.removeEventListener('popstate', handleNavigation);
+    };
   }, []);
 
   const handleSwitchToAdmin = () => {
@@ -279,7 +330,7 @@ export default function App() {
 
   const handleSwitchToCitizen = () => {
     setCurrentView('citizen');
-    window.location.hash = 'portal';
+    window.location.hash = 'customer-portal';
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 

@@ -126,6 +126,12 @@ export const HeaderWithTypewriter: React.FC<HeaderWithTypewriterProps> = ({
         {/* Zone 2: Concise single-line navigation links */}
         <nav className="hidden md:flex items-center gap-7 text-sm font-medium text-slate-600">
           <a
+            href="#customer-portal"
+            className="text-emerald-800 font-semibold hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0"
+          >
+            Customer Portal
+          </a>
+          <a
             href="#voice-capture"
             className="hover:text-emerald-800 hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0"
           >

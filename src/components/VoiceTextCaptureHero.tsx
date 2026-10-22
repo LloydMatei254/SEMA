@@ -982,11 +982,11 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
     : text;
 
   return (
-    <main className="max-w-[1280px] mx-auto px-6 py-8 space-y-12">
+    <main id="customer-portal" className="max-w-[1280px] mx-auto px-6 py-8 space-y-12 scroll-mt-20">
       {/* Primary Hero Split: Voice & Text Box (8 cols) + QR Code Panel (4 cols) */}
       <section
         id="voice-capture"
-        className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch"
+        className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch scroll-mt-20"
       >
         {/* Dominant Focal Anchor: Voice & Text Capture Box */}
         <div className="lg:col-span-8 bg-white border border-emerald-950/15 rounded-xl p-6 sm:p-7 flex flex-col justify-between gap-6 shadow-xs">
