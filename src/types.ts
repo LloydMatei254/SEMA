@@ -6,6 +6,19 @@ export type PriorityLevel = 'Urgent' | 'High' | 'Medium' | 'Routine';
 
 export type ReportStatus = 'Received' | 'Assigned' | 'In Progress' | 'Resolved' | 'Closed';
 
+export type CitizenSentiment = 'Frustrated' | 'Distressed' | 'Angry' | 'Urgent' | 'Neutral' | 'Constructive';
+
+export type TensionLevel = 'High' | 'Elevated' | 'Standard';
+
+export interface SentimentAnalysis {
+  sentiment: CitizenSentiment;
+  tensionLevel: TensionLevel;
+  frustrationScore: number; // 0 to 100
+  isHighTension: boolean;
+  tensionFactors: string[];
+  tensionNotes?: string;
+}
+
 export interface AIClassification {
   category: string;
   urgency: PriorityLevel;
@@ -13,6 +26,12 @@ export interface AIClassification {
   rationale: string;
   estimatedSLA: string;
   confidenceScore?: number;
+  sentiment?: CitizenSentiment;
+  tensionLevel?: TensionLevel;
+  frustrationScore?: number;
+  isHighTension?: boolean;
+  tensionFactors?: string[];
+  tensionNotes?: string;
 }
 
 export interface SubmissionRecord {
@@ -40,6 +59,13 @@ export interface SubmissionRecord {
   emailAlertSentAt?: string;
   emailAlertSubject?: string;
   emailAlertBody?: string;
+  // Sentiment Analysis & High Tension Flagging
+  sentiment?: CitizenSentiment;
+  tensionLevel?: TensionLevel;
+  frustrationScore?: number;
+  isHighTension?: boolean;
+  tensionFactors?: string[];
+  tensionNotes?: string;
 }
 
 export interface EmailDispatchLog {
@@ -71,81 +97,81 @@ export interface ResponseTeam {
 
 export const KENYAN_RESPONSE_TEAMS: ResponseTeam[] = [
   {
-    id: 'team-kplc',
-    name: 'Kenya Power Emergency & Streetlighting Unit',
-    shortCode: 'KPLC-EMG',
-    department: 'Power & Street Lighting',
+    id: 'team-fibre',
+    name: 'Safaricom Home Fibre & Enterprise NOC',
+    shortCode: 'SAF-FIBRE',
+    department: 'Home Fibre & Fixed Internet',
     leadOfficer: 'Eng. Dennis Kiprono',
-    email: 'dennis.kiprono@kplc.co.ke',
-    phone: '0703 070 707',
+    email: 'dennis.kiprono@safaricom.co.ke',
+    phone: '400 / 0722 002 400',
     activeCount: 14,
     color: 'emerald',
   },
   {
-    id: 'team-water',
-    name: 'Nairobi / County Water & Sewerage Rapid Response',
-    shortCode: 'NCWSC-OPS',
-    department: 'Water & Sanitation',
+    id: 'team-mpesa',
+    name: 'M-PESA Escalations & Reversals Operations',
+    shortCode: 'MPESA-OPS',
+    department: 'M-PESA & Financial Services',
     leadOfficer: 'Officer Grace Mwangi',
-    email: 'grace.mwangi@nairobiwater.co.ke',
-    phone: '0703 080 598',
-    activeCount: 9,
+    email: 'grace.mwangi@safaricom.co.ke',
+    phone: '234 / 0722 002 234',
+    activeCount: 18,
     color: 'sky',
   },
   {
-    id: 'team-roads',
-    name: 'KeRRA & KURA Urban Roads & Drainage Taskforce',
-    shortCode: 'KURA-RDS',
-    department: 'Roads & Infrastructure',
+    id: 'team-ran',
+    name: '4G / 5G Mobile Network & Base Transceiver (BTS) Team',
+    shortCode: 'SAF-RAN',
+    department: 'Mobile Network & 4G/5G Coverage',
     leadOfficer: 'Supervisor Brian Otieno',
-    email: 'brian.otieno@kura.go.ke',
-    phone: '0722 000 111',
+    email: 'brian.otieno@safaricom.co.ke',
+    phone: '100 / 0722 002 100',
     activeCount: 12,
     color: 'amber',
   },
   {
-    id: 'team-health',
-    name: 'County Public Health & Clinic Inspection Unit',
-    shortCode: 'CPH-HLTH',
-    department: 'Health & Medical Services',
+    id: 'team-fraud',
+    name: 'SIM Swap, Identity Protection & Cyber-Fraud Unit',
+    shortCode: 'SAF-FRAUD',
+    department: 'SIM Swap, Fraud & Security',
+    leadOfficer: 'Insp. Hassan Ali',
+    email: 'hassan.ali@safaricom.co.ke',
+    phone: '333 / 0722 000 333',
+    activeCount: 9,
+    color: 'rose',
+  },
+  {
+    id: 'team-care',
+    name: 'Customer Experience & Airtime Billing Desk',
+    shortCode: 'SAF-CARE',
+    department: 'Customer Care & Airtime Billing',
+    leadOfficer: 'Coordinator Agnes Muthoni',
+    email: 'agnes.muthoni@safaricom.co.ke',
+    phone: '200 / 0722 002 200',
+    activeCount: 7,
+    color: 'indigo',
+  },
+  {
+    id: 'team-ent',
+    name: 'Enterprise Business Solutions & Cloud Desk',
+    shortCode: 'SAF-ENT',
+    department: 'Enterprise & Cloud Solutions',
     leadOfficer: 'Dr. Faith Wanjiku',
-    email: 'faith.wanjiku@health.go.ke',
-    phone: '0711 222 333',
+    email: 'faith.wanjiku@safaricom.co.ke',
+    phone: '0722 002 222',
     activeCount: 6,
     color: 'teal',
   },
   {
-    id: 'team-waste',
-    name: 'National Environment & Waste Clearance Team',
-    shortCode: 'NEMA-CLEN',
-    department: 'Waste Management',
-    leadOfficer: 'Insp. Hassan Ali',
-    email: 'hassan.ali@nema.go.ke',
-    phone: '0733 444 555',
+    id: 'team-merch',
+    name: 'Lipa Na M-PESA & Merchant Services Desk',
+    shortCode: 'SAF-MERCH',
+    department: 'Lipa Na M-PESA & Merchant Services',
+    leadOfficer: 'Lead John Kimani',
+    email: 'john.kimani@safaricom.co.ke',
+    phone: '0722 000 000',
     activeCount: 8,
     color: 'lime',
-  },
-  {
-    id: 'team-safety',
-    name: 'Administration Police & Community Safety Rapid Unit',
-    shortCode: 'NPS-SAFE',
-    department: 'Public Safety & Security',
-    leadOfficer: 'Sgt. John Kimani',
-    email: 'john.kimani@nps.go.ke',
-    phone: '0720 999 888',
-    activeCount: 16,
-    color: 'rose',
-  },
-  {
-    id: 'team-huduma',
-    name: 'Huduma Citizen Digital Services & Registry Desk',
-    shortCode: 'HUDUMA-REG',
-    department: 'Civic & Public Services',
-    leadOfficer: 'Coordinator Agnes Muthoni',
-    email: 'agnes.muthoni@hudumakenya.go.ke',
-    phone: '0800 723 253',
-    activeCount: 5,
-    color: 'indigo',
   },
 ];
 

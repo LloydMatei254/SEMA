@@ -174,7 +174,7 @@ export const AdminDispatchConsole: React.FC<AdminDispatchConsoleProps> = ({
     const total = submissions.length;
 
     for (const sub of submissions) {
-      const cat = sub.category || 'Civic & Public Services';
+      const cat = sub.category || 'Home Fibre & Fixed Internet';
       counts[cat] = (counts[cat] || 0) + 1;
     }
 
@@ -182,54 +182,54 @@ export const AdminDispatchConsole: React.FC<AdminDispatchConsoleProps> = ({
       string,
       { fill: string; stroke: string; bg: string; text: string; dot: string }
     > = {
-      'Water & Sanitation': {
-        fill: '#06b6d4',
-        stroke: '#0891b2',
-        bg: 'bg-cyan-50',
-        text: 'text-cyan-800',
-        dot: 'bg-cyan-500',
-      },
-      'Power & Street Lighting': {
-        fill: '#f59e0b',
-        stroke: '#d97706',
-        bg: 'bg-amber-50',
-        text: 'text-amber-800',
-        dot: 'bg-amber-500',
-      },
-      'Roads & Infrastructure': {
-        fill: '#6366f1',
-        stroke: '#4f46e5',
-        bg: 'bg-indigo-50',
-        text: 'text-indigo-800',
-        dot: 'bg-indigo-500',
-      },
-      'Health & Medical Services': {
-        fill: '#ef4444',
-        stroke: '#dc2626',
-        bg: 'bg-red-50',
-        text: 'text-red-800',
-        dot: 'bg-red-500',
-      },
-      'Waste Management': {
+      'Home Fibre & Fixed Internet': {
         fill: '#10b981',
         stroke: '#059669',
         bg: 'bg-emerald-50',
         text: 'text-emerald-800',
         dot: 'bg-emerald-500',
       },
-      'Public Safety & Security': {
-        fill: '#8b5cf6',
-        stroke: '#7c3aed',
-        bg: 'bg-purple-50',
-        text: 'text-purple-800',
-        dot: 'bg-purple-500',
+      'M-PESA & Financial Services': {
+        fill: '#0284c7',
+        stroke: '#0369a1',
+        bg: 'bg-sky-50',
+        text: 'text-sky-800',
+        dot: 'bg-sky-500',
       },
-      'Civic & Public Services': {
+      'Mobile Network & 4G/5G Coverage': {
+        fill: '#f59e0b',
+        stroke: '#d97706',
+        bg: 'bg-amber-50',
+        text: 'text-amber-800',
+        dot: 'bg-amber-500',
+      },
+      'SIM Swap, Fraud & Security': {
+        fill: '#ef4444',
+        stroke: '#dc2626',
+        bg: 'bg-rose-50',
+        text: 'text-rose-800',
+        dot: 'bg-rose-500',
+      },
+      'Customer Care & Airtime Billing': {
+        fill: '#6366f1',
+        stroke: '#4f46e5',
+        bg: 'bg-indigo-50',
+        text: 'text-indigo-800',
+        dot: 'bg-indigo-500',
+      },
+      'Enterprise & Cloud Solutions': {
         fill: '#14b8a6',
         stroke: '#0d9488',
         bg: 'bg-teal-50',
         text: 'text-teal-800',
         dot: 'bg-teal-500',
+      },
+      'Lipa Na M-PESA & Merchant Services': {
+        fill: '#84cc16',
+        stroke: '#65a30d',
+        bg: 'bg-lime-50',
+        text: 'text-lime-800',
+        dot: 'bg-lime-500',
       },
     };
 
@@ -309,14 +309,14 @@ export const AdminDispatchConsole: React.FC<AdminDispatchConsoleProps> = ({
         throw new Error('Fallback needed');
       }
     } catch {
-      const topCat = pieChartData.items[0]?.category || 'Water & Sanitation';
-      const topPct = pieChartData.items[0]?.percentage || 40;
+      const topCat = pieChartData.items[0]?.category || 'Home Fibre & Fixed Internet';
+      const topPct = pieChartData.items[0]?.percentage || 45;
       setAiAnalyticsData({
-        executiveSummary: `SEMA AI Data Synthesis: Fast-compiled ${submissions.length} citizen incident logs across Kenyan counties. Primary incident concentration is "${topCat}" at ${topPct}% volume. Urban drainage and emergency power units are prioritized for immediate field deployment.`,
+        executiveSummary: `Safaricom SEMA NOC Synthesis: Fast-compiled ${submissions.length} customer incident tickets across Kenya. Primary ticket concentration is "${topCat}" at ${topPct}% volume. Metro fiber re-splicing crews and M-PESA transaction recovery engineers are prioritized for immediate technical intervention.`,
         recommendations: [
-          `Route KeRRA & KURA road clearance units to clear blocked channels along Kenyatta Ave and Roysambu.`,
-          `Dispatch Nairobi Water technicians to Umoja Stage to prevent extended dry taps and meet 4h SLA.`,
-          `Maintain proactive citizen notifications via Kiswahili and Sheng channels to update affected residents.`,
+          `Dispatch Safaricom metro fiber splicing teams with OTDR fault locators along active red-LOS clusters.`,
+          `Re-query core M-PESA B2C/B2B transaction switch reconciliation to achieve 30-minute SLA on hospital and till payments.`,
+          `Maintain proactive customer notifications via Kiswahili and Sheng channels to update affected subscribers.`,
         ],
         aiPowered: true,
         compiledAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -407,17 +407,17 @@ export const AdminDispatchConsole: React.FC<AdminDispatchConsoleProps> = ({
     const sla =
       report.aiClassification?.estimatedSLA ||
       (urgency === 'Urgent' ? '2 hours' : urgency === 'High' ? '6 hours' : '24 hours');
-    const subject = `[SEMA DISPATCH ALERT] ${report.referenceCode} - ${report.category || 'Incident'} (${urgency} Priority)`;
+    const subject = `[SAFARICOM NOC DISPATCH] ${report.referenceCode} - ${report.category || 'Incident'} (${urgency} Priority)`;
 
     const body = `======================================================
-SEMA NATIONAL CITIZEN INCIDENT DISPATCH NOTICE
-Government of Kenya - Municipal Rapid Response Command
+SAFARICOM PLC - RAPID INCIDENT DISPATCH NOTICE
+Network Operations Center (NOC) & Customer Escalations
 ======================================================
 
 INCIDENT REFERENCE: ${report.referenceCode}
 PRIORITY / URGENCY: ${urgency.toUpperCase()}
 TARGET SLA:         ${sla}
-CATEGORY:           ${report.category || 'Civic & Public Services'}
+CATEGORY:           ${report.category || 'Home Fibre & Fixed Internet'}
 LOCATION:           ${report.countyOrWard}
 DATE LOGGED:        ${new Date(report.createdAt).toLocaleString('en-KE', { timeZone: 'Africa/Nairobi' })} EAT
 
@@ -427,26 +427,26 @@ ASSIGNED FIELD OFFICER:
   Team:    ${teamName}
 
 ------------------------------------------------------
-CITIZEN INCIDENT REPORT (ORIGINAL):
+CUSTOMER INCIDENT REPORT (ORIGINAL):
 ------------------------------------------------------
 "${report.text}"
 Language: ${report.detectedLanguage} (Capture Method: ${report.captureMethod})
 ${report.englishTranslation ? `\nEnglish Translation:\n"${report.englishTranslation}"\n` : ''}
-${report.contactInfo ? `Citizen Contact: ${report.contactInfo}` : 'Citizen Contact: Anonymous / Voice Portal'}
+${report.contactInfo ? `Customer Line / Contact: ${report.contactInfo}` : 'Customer Contact: Anonymous / SEMA Portal'}
 
 ------------------------------------------------------
 DISPATCH & AI ROUTING DIRECTIVES:
 ------------------------------------------------------
-Routing Rationale: ${report.aiClassification?.rationale || 'Dispatched for immediate on-site inspection and remedial action.'}
-Admin Directives:  ${adminNotes || report.adminNotes || 'Proceed with standard emergency operating procedure.'}
+Routing Rationale: ${report.aiClassification?.rationale || 'Dispatched for immediate technical inspection and fault rectification.'}
+Admin Directives:  ${adminNotes || report.adminNotes || 'Proceed with standard Safaricom emergency response operating procedure.'}
 
 REQUIRED IMMEDIATE ACTIONS:
-1. Confirm receipt and mobilize ground response crew within the target SLA window (${sla}).
-2. Update incident milestone status to "In Progress" in the SEMA Dispatch Console upon arrival.
+1. Confirm receipt and mobilize technical field crew within the target SLA window (${sla}).
+2. Update incident milestone status to "In Progress" in the Safaricom Dispatch Console upon arrival.
 3. Submit post-intervention clearance report and resolution notes upon completion.
 
-Dispatch Console Access: https://sema.go.ke/admin?ref=${report.referenceCode}
-Automated alert dispatched by SEMA Intelligent Dispatch System.
+Dispatch Console Access: https://safaricom.co.ke/dispatch?ref=${report.referenceCode}
+Automated alert dispatched by Safaricom SEMA Intelligent NOC Operations.
 ======================================================`;
 
     return { subject, body };
@@ -720,33 +720,33 @@ Automated alert dispatched by SEMA Intelligent Dispatch System.
       let bestTeam = KENYAN_RESPONSE_TEAMS[0];
       let urgency: PriorityLevel = 'Medium';
       let sla = '24 hours';
-      let rationale = 'Routed based on citizen keyword analysis';
+      let rationale = 'Routed based on customer keyword analysis';
 
-      if (/\b(stima|power|lights?|electricity|transformer|cheche)\b/i.test(lower)) {
-        bestTeam = KENYAN_RESPONSE_TEAMS.find((t) => t.id === 'team-kplc')!;
-        urgency = /\b(spark|fire|cheche|danger)\b/i.test(lower) ? 'Urgent' : 'High';
+      if (/\b(fibre|fiber|router|los|optical|wifi|modem|red light)\b/i.test(lower)) {
+        bestTeam = KENYAN_RESPONSE_TEAMS.find((t) => t.id === 'team-fibre') || KENYAN_RESPONSE_TEAMS[0];
+        urgency = /\b(red|los|cut|down|interrupted)\b/i.test(lower) ? 'Urgent' : 'High';
         sla = urgency === 'Urgent' ? '2 hours' : '6 hours';
-        rationale = 'Electrical infrastructure failure requiring urgent isolation and repair.';
-      } else if (/\b(maji|water|pipe|bomba|burst|sewer)\b/i.test(lower)) {
-        bestTeam = KENYAN_RESPONSE_TEAMS.find((t) => t.id === 'team-water')!;
-        urgency = /\b(burst|sewer|chafu)\b/i.test(lower) ? 'High' : 'Medium';
-        sla = urgency === 'High' ? '4 hours' : '24 hours';
-        rationale = 'Water supply loss or pipeline burst requiring maintenance response.';
-      } else if (/\b(road|barabara|pothole|matatu|nduthi|matatu)\b/i.test(lower)) {
-        bestTeam = KENYAN_RESPONSE_TEAMS.find((t) => t.id === 'team-roads')!;
-        urgency = 'Medium';
-        sla = '36 hours';
-        rationale = 'Roadway impassability or drainage silt clearance.';
-      } else if (/\b(security|usalama|police|wezi|thief)\b/i.test(lower)) {
-        bestTeam = KENYAN_RESPONSE_TEAMS.find((t) => t.id === 'team-safety')!;
+        rationale = 'Optical fiber link down or red LOS light halting connectivity.';
+      } else if (/\b(mpesa|m-pesa|fuliza|send money|reversal|paybill|till)\b/i.test(lower)) {
+        bestTeam = KENYAN_RESPONSE_TEAMS.find((t) => t.id === 'team-mpesa') || KENYAN_RESPONSE_TEAMS[1];
+        urgency = /\b(hospital|stuck|emergency|trapped)\b/i.test(lower) ? 'Urgent' : 'High';
+        sla = urgency === 'Urgent' ? '30 minutes' : '2 hours';
+        rationale = 'M-PESA financial transaction escalation and core system reconciliation.';
+      } else if (/\b(4g|5g|network|signal|coverage|bts|mast|tower|emergency calls)\b/i.test(lower)) {
+        bestTeam = KENYAN_RESPONSE_TEAMS.find((t) => t.id === 'team-ran') || KENYAN_RESPONSE_TEAMS[2];
+        urgency = 'High';
+        sla = '4 hours';
+        rationale = 'Radio Access Network (RAN) sector failure or base station mast fault.';
+      } else if (/\b(sim swap|fraud|scam|tapeli|wizi|hack|puk|stolen)\b/i.test(lower)) {
+        bestTeam = KENYAN_RESPONSE_TEAMS.find((t) => t.id === 'team-fraud') || KENYAN_RESPONSE_TEAMS[3];
         urgency = 'Urgent';
         sla = '1 hour';
-        rationale = 'Public security threat or night patrol requirement.';
-      } else if (/\b(hospital|clinic|dawa|medicine|afya)\b/i.test(lower)) {
-        bestTeam = KENYAN_RESPONSE_TEAMS.find((t) => t.id === 'team-health')!;
-        urgency = 'High';
-        sla = '8 hours';
-        rationale = 'Public health clinic service inquiry.';
+        rationale = 'Unauthorized SIM swap or security risk requiring instant account lock.';
+      } else if (/\b(airtime|bonga|bundle|postpay|prepay|billing)\b/i.test(lower)) {
+        bestTeam = KENYAN_RESPONSE_TEAMS.find((t) => t.id === 'team-care') || KENYAN_RESPONSE_TEAMS[4];
+        urgency = 'Medium';
+        sla = '12 hours';
+        rationale = 'Customer experience billing and bundle deduction review.';
       }
 
       const emailContent = generateClientEmailAlert(
@@ -888,13 +888,13 @@ Automated alert dispatched by SEMA Intelligent Dispatch System.
               className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Back to Citizen Portal</span>
+              <span>Back to Customer Portal</span>
             </button>
             <div className="h-4 w-[1px] bg-slate-300 hidden sm:block" />
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 animate-pulse" />
               <span className="text-xs font-mono font-semibold uppercase tracking-wider text-slate-500">
-                SEMA National Incident Dispatch Console
+                Safaricom SEMA · Network Operations &amp; Dispatch Console
               </span>
             </div>
           </div>
@@ -904,10 +904,10 @@ Automated alert dispatched by SEMA Intelligent Dispatch System.
               type="button"
               onClick={() => setIsEmailLogsModalOpen(true)}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-900 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-colors cursor-pointer"
-              title="View automated email alerts dispatched to Kenyan officers"
+              title="View automated email alerts dispatched to Safaricom response leads"
             >
               <MailCheck className="w-3.5 h-3.5 text-emerald-700" />
-              <span>Email Alerts ({metrics.emailAlertsSent})</span>
+              <span>Officer Alerts ({metrics.emailAlertsSent})</span>
             </button>
 
             <button
@@ -1020,7 +1020,7 @@ Automated alert dispatched by SEMA Intelligent Dispatch System.
         {/* 5-KPI Operations Strip */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-1">
-            <span className="text-xs font-medium text-slate-500">Total Citizen Reports</span>
+            <span className="text-xs font-medium text-slate-500">Total Customer Incidents</span>
             <p className="text-2xl font-bold font-mono tabular-nums text-slate-900">
               {metrics.total}
             </p>
@@ -1040,15 +1040,15 @@ Automated alert dispatched by SEMA Intelligent Dispatch System.
             <p className="text-2xl font-bold font-mono tabular-nums text-emerald-700">
               {metrics.inProgress}
             </p>
-            <p className="text-[11px] text-slate-400">Ground units operating</p>
+            <p className="text-[11px] text-slate-400">Safaricom NOC &amp; field units operating</p>
           </div>
 
           <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-1">
-            <span className="text-xs font-medium text-slate-500">Urgent Hazards</span>
+            <span className="text-xs font-medium text-slate-500">Urgent Escalations</span>
             <p className="text-2xl font-bold font-mono tabular-nums text-red-600">
               {metrics.urgentCount}
             </p>
-            <p className="text-[11px] text-red-500">Immediate public safety</p>
+            <p className="text-[11px] text-red-500">Critical fibre / M-PESA urgency</p>
           </div>
 
           <button
@@ -1076,11 +1076,11 @@ Automated alert dispatched by SEMA Intelligent Dispatch System.
             <div className="flex items-center gap-2">
               <Building2 className="w-4 h-4 text-emerald-800" />
               <h2 className="text-sm font-bold text-slate-900">
-                Active Kenyan Municipal &amp; Rapid Response Teams
+                Active Safaricom PLC Incident &amp; Network Response Teams
               </h2>
             </div>
             <span className="text-xs text-slate-500">
-              7 Units Connected · Real-time auto-assignment targets
+              7 Specialized Units Connected · Real-time auto-assignment targets
             </span>
           </div>
 
@@ -1227,10 +1227,11 @@ Automated alert dispatched by SEMA Intelligent Dispatch System.
             <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-slate-100 text-xs">
               <span className="text-2xs text-slate-400 font-medium mr-1">Quick Filters:</span>
               {[
-                { label: 'Reference: SEMA-KE-', value: 'SEMA-KE-' },
-                { label: 'Category: Water', value: 'Water & Sanitation' },
-                { label: 'Category: Power', value: 'Power & Street Lighting' },
-                { label: 'Category: Roads', value: 'Roads & Infrastructure' },
+                { label: 'Reference: SEMA-SAF-', value: 'SEMA-SAF-' },
+                { label: 'Category: Home Fibre', value: 'Home Fibre & Fixed Internet' },
+                { label: 'Category: M-PESA', value: 'M-PESA & Financial Services' },
+                { label: 'Category: 4G/5G Network', value: 'Mobile Network & 4G/5G Coverage' },
+                { label: 'Category: SIM Swap / Fraud', value: 'SIM Swap, Fraud & Security' },
                 { label: 'Status: In Progress', value: 'In Progress' },
                 { label: 'Status: Resolved', value: 'Resolved' },
                 { label: 'Status: Assigned', value: 'Assigned' },
@@ -1760,14 +1761,14 @@ Automated alert dispatched by SEMA Intelligent Dispatch System.
                 <div className="sm:col-span-1">
                   <label htmlFor="officer-email" className="block text-xs font-medium text-slate-700 mb-1 flex items-center justify-between">
                     <span>Officer Official Email</span>
-                    <span className="text-[10px] text-emerald-700 font-semibold">Government Mail</span>
+                    <span className="text-[10px] text-emerald-700 font-semibold">Safaricom Mail</span>
                   </label>
                   <input
                     id="officer-email"
                     type="email"
                     value={dispatchOfficerEmail}
                     onChange={(e) => setDispatchOfficerEmail(e.target.value)}
-                    placeholder="e.g. officer@kplc.co.ke"
+                    placeholder="e.g. officer@safaricom.co.ke"
                     className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 font-mono focus:outline-none focus:border-emerald-600"
                   />
                 </div>
@@ -2138,12 +2139,12 @@ Automated alert dispatched by SEMA Intelligent Dispatch System.
 
               <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-0.5">
                 <span className="text-2xs font-semibold uppercase tracking-wider text-slate-600">
-                  Active Response Agencies
+                  Active Response Teams
                 </span>
                 <p className="text-2xl font-bold font-mono text-slate-900">
                   {KENYAN_RESPONSE_TEAMS.length}
                 </p>
-                <span className="text-2xs text-slate-500">KPLC · NCWSC · KURA · Public Health</span>
+                <span className="text-2xs text-slate-500">Home Fibre · M-PESA · 4G/5G BTS · Cyber-Fraud</span>
               </div>
             </div>
 
@@ -2154,7 +2155,7 @@ Automated alert dispatched by SEMA Intelligent Dispatch System.
                   Dispatched Email Log Records ({metrics.emailAlertsSent})
                 </span>
                 <span className="text-2xs text-slate-500 font-mono">
-                  Gateway: dispatch@sema.go.ke
+                  Gateway: dispatch@safaricom.co.ke
                 </span>
               </div>
 
@@ -2173,7 +2174,7 @@ Automated alert dispatched by SEMA Intelligent Dispatch System.
                       <tr>
                         <th className="py-2.5 px-3">Reference &amp; Time</th>
                         <th className="py-2.5 px-3">Assigned Officer</th>
-                        <th className="py-2.5 px-3">Response Agency</th>
+                        <th className="py-2.5 px-3">Response Team</th>
                         <th className="py-2.5 px-3">Status</th>
                         <th className="py-2.5 px-3 text-right">Action</th>
                       </tr>
@@ -2205,12 +2206,12 @@ Automated alert dispatched by SEMA Intelligent Dispatch System.
                               <span className="text-2xs text-slate-500 font-mono truncate max-w-[180px] block">
                                 {report.assignedOfficerEmail ||
                                   report.emailAlertRecipient ||
-                                  'officer@sema.go.ke'}
+                                  'officer@safaricom.co.ke'}
                               </span>
                             </td>
 
                             <td className="py-2.5 px-3 text-slate-700 font-medium">
-                              {report.assignedTeam || 'Municipal Taskforce'}
+                              {report.assignedTeam || 'Safaricom Response Unit'}
                             </td>
 
                             <td className="py-2.5 px-3">
@@ -2484,7 +2485,7 @@ Automated alert dispatched by SEMA Intelligent Dispatch System.
                       Primary Issue Concentration
                     </span>
                     <p className="text-sm font-bold text-slate-900 mt-1 truncate">
-                      {pieChartData.items[0]?.category || 'Water & Sanitation'}
+                      {pieChartData.items[0]?.category || 'Home Fibre & Fixed Internet'}
                     </p>
                     <span className="text-2xs text-emerald-800 font-semibold">
                       {pieChartData.items[0]?.percentage || 0}% of total volume

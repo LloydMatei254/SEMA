@@ -6,28 +6,28 @@ export const TYPEWRITER_PHRASES: TypewriterPhrase[] = [
   {
     langCode: 'en',
     langLabel: 'English',
-    regionNote: 'Official English · Kenya',
-    headline: 'Tell us the problem and we will fix it.',
+    regionNote: 'Official English · Safaricom Kenya',
+    headline: 'Tell Safaricom the problem and we will fix it.',
     placeholder:
-      'Speak with the microphone or type your issue here in English, Kiswahili, or Sheng (e.g., "Street lights along Ngong Road have been off for a week...")',
-    ctaLabel: 'Submit Problem Report',
+      'Speak with the microphone or type your issue here in English, Kiswahili, or Sheng (e.g., "Safaricom Home Fibre router red LOS light blinking since yesterday...", "M-PESA transaction stuck without SMS...", or "No 4G/5G reception in Ruiru...")',
+    ctaLabel: 'Submit Safaricom Report',
   },
   {
     langCode: 'sw',
     langLabel: 'Kiswahili',
-    regionNote: 'Kiswahili Sanifu · Kenya',
-    headline: 'Tuambie shida yako na tutaitatua.',
+    regionNote: 'Kiswahili Sanifu · Safaricom Kenya',
+    headline: 'Tuambie shida yako ya Safaricom na tutaitatua.',
     placeholder:
-      'Bonyeza kipaza sauti uongee au uandike shida yako hapa kwa Kiswahili, Kiingereza au Sheng (k.m., "Tuna shida ya maji hapa mtaa wa South B kwa siku nne...")',
-    ctaLabel: 'Wasilisha Ripoti Sasa',
+      'Bonyeza kipaza sauti uongee au uandike shida yako hapa kwa Kiswahili, Kiingereza au Sheng (k.m., "Router ya Safaricom Home Fibre inawaka red tangu asubuhi, au pesa za M-PESA zimekwama bila meseji...")',
+    ctaLabel: 'Wasilisha Ripoti ya Safaricom',
   },
   {
     langCode: 'sheng',
     langLabel: 'Sheng',
-    regionNote: 'Kenyan Sheng · Mtaani',
-    headline: 'Tuchanue rada ni gani na tutaisort.',
+    regionNote: 'Kenyan Sheng · Safaricom Mtaani',
+    headline: 'Tuchanue rada ya Safaricom ni gani na tutaisort.',
     placeholder:
-      'Bonga kwa mic ama utype rada iko aje hapa kwa Sheng, Kiswahili ama Kizungu (k.m., "Manze stima imelost huku Roysambu tangu jana usiku, tusortini...")',
+      'Bonga kwa mic ama utype rada iko aje hapa kwa Sheng, Kiswahili ama Kizungu (k.m., "Home Fibre imelost router inawaka red, chapaa ya M-PESA imekwama kwa Paybill, ama 5G imedrop...")',
     ctaLabel: 'Tuma Rada Ifanyiwe Kazi',
   },
 ];
@@ -120,7 +120,7 @@ export const HeaderWithTypewriter: React.FC<HeaderWithTypewriterProps> = ({
               <path d="M20 11v2" />
             </svg>
           </span>
-          <span>SEMA</span>
+          <span>Safaricom SEMA</span>
         </a>
 
         {/* Zone 2: Concise single-line navigation links */}
@@ -147,7 +147,7 @@ export const HeaderWithTypewriter: React.FC<HeaderWithTypewriterProps> = ({
             href="#footer-contact"
             className="hover:text-emerald-800 hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0"
           >
-            Contact Desk
+            Safaricom Care Desk
           </a>
         </nav>
 
@@ -169,7 +169,7 @@ export const HeaderWithTypewriter: React.FC<HeaderWithTypewriterProps> = ({
               className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-emerald-900 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-colors whitespace-nowrap shrink-0 cursor-pointer"
             >
               <ShieldAlert className="w-4 h-4 text-emerald-700" />
-              <span>Admin Dispatch</span>
+              <span>NOC Dispatch</span>
               {unassignedCount > 0 && (
                 <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-white font-mono tabular-nums">
                   {unassignedCount}
@@ -186,7 +186,7 @@ export const HeaderWithTypewriter: React.FC<HeaderWithTypewriterProps> = ({
           <div className="space-y-3 max-w-3xl">
             {/* Language Switcher / Cycle Indicator */}
             <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600">
-              <span className="font-medium text-emerald-900">Kenya Multilingual Voice &amp; Text Desk</span>
+              <span className="font-medium text-emerald-900">Safaricom PLC Customer &amp; Network Rapid Response Desk</span>
               <span aria-hidden="true">·</span>
               <div
                 className="inline-flex items-center gap-1 p-1 bg-slate-100 rounded-lg"
@@ -243,7 +243,7 @@ export const HeaderWithTypewriter: React.FC<HeaderWithTypewriterProps> = ({
               <span className="font-semibold text-emerald-900">English</span>,{' '}
               <span className="font-semibold text-emerald-900">Kiswahili</span>, or{' '}
               <span className="font-semibold text-emerald-900">Sheng</span>. Our AI transcribes your
-              voice directly into the text box so our rapid response desk can resolve your issue.
+              voice directly into the text box so Safaricom&apos;s specialized NOC, Fibre, and M-PESA response teams can resolve your issue.
             </p>
           </div>
 

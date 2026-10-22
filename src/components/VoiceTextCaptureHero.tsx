@@ -51,39 +51,39 @@ const KENYAN_LOCATIONS = [
 const INITIAL_KENYAN_SUBMISSIONS: SubmissionRecord[] = [
   {
     id: 'sema-101',
-    referenceCode: 'SEMA-KE-8041',
-    text: 'Stima imepotea hapa Roysambu karibu na TRM tangu jana usiku na transformers zinatoa cheche. Tafadhali mtusaidie haraka.',
+    referenceCode: 'SEMA-SAF-8041',
+    text: 'Router ya Safaricom Home Fibre inawaka red hapa Roysambu karibu na TRM tangu jana usiku, internet imelost na kazi imesimama. Tafadhali tusaidieni kuangalia fiber cable haraka.',
     detectedLanguage: 'Kiswahili',
-    englishTranslation: 'Electricity has been out here in Roysambu near TRM since last night and the transformers are sparking. Please help us urgently.',
-    category: 'Power & Street Lighting',
-    countyOrWard: 'Nairobi · Roysambu',
+    englishTranslation: 'The Safaricom Home Fibre router has a blinking red LOS light here in Roysambu near TRM since last night, internet is down and remote work has stopped. Please inspect the fiber optical cable urgently.',
+    category: 'Home Fibre & Fixed Internet',
+    countyOrWard: 'Nairobi · Roysambu / Lumumba Drive',
     captureMethod: 'voice',
-    aiCommitmentResponse: 'Tumepokea ripoti yako kuhusu hitilafu ya stima Roysambu. Timu ya dharura imetumwa kuchunguza transformer hiyo mara moja.',
+    aiCommitmentResponse: 'Tumepokea ripoti yako kuhusu mtandao wa Safaricom Home Fibre Roysambu. Timu yetu ya fiber engineering imetumwa mara moja kurekebisha line hiyo.',
     status: 'In Progress',
     createdAt: new Date(Date.now() - 1000 * 60 * 18).toISOString(),
   },
   {
     id: 'sema-102',
-    referenceCode: 'SEMA-KE-8042',
-    text: 'Manze maji imelost huku Umoja Innercore for four days sasa na mabomba zimepasuka hapo kwa stage. Chanueni wasee wa maji wafix hii noma.',
+    referenceCode: 'SEMA-SAF-8042',
+    text: 'Manze chapaa ya M-PESA imekwama kwa Paybill ya hospitali tangu asubuhi lakini message haijakam na mgonjwa hawezi release-iwa. Chanueni wasee wa M-PESA wasort hii transaction mbio!',
     detectedLanguage: 'Sheng',
-    englishTranslation: 'Water has been out here in Umoja Innercore for four days now and the pipes have burst near the bus stage. Alert the water maintenance team to fix this issue.',
-    category: 'Water & Sanitation',
-    countyOrWard: 'Nairobi · Umoja',
+    englishTranslation: 'My M-PESA money has been stuck on a hospital Paybill since morning but no confirmation SMS was received and the patient cannot be discharged. Alert M-PESA core operations to resolve this transaction urgently!',
+    category: 'M-PESA & Financial Services',
+    countyOrWard: 'Nairobi · Umoja / Buruburu',
     captureMethod: 'voice',
-    aiCommitmentResponse: 'Rada imefika! Wasee wa maji wamepewa alert kuhusu hiyo bomba imepasuka hapo Umoja stage na wako njiani kuisort.',
+    aiCommitmentResponse: 'Rada imefika safi! M-PESA core escalations desk imepewa alert kuhusu hii transaction na wanacheck settlement records mara hii.',
     status: 'Assigned',
     createdAt: new Date(Date.now() - 1000 * 60 * 42).toISOString(),
   },
   {
     id: 'sema-103',
-    referenceCode: 'SEMA-KE-8043',
-    text: 'The drainage channel along Kenyatta Avenue in Nakuru CBD is blocked with debris and causing flooding near the pedestrian crossing whenever it rains.',
+    referenceCode: 'SEMA-SAF-8043',
+    text: 'Our entire estate along Kenyatta Avenue in Nakuru CBD has experienced severe 4G and 5G network dropouts with emergency calls only on all Safaricom lines since the thunderstorm yesterday.',
     detectedLanguage: 'English',
-    category: 'Roads & Infrastructure',
-    countyOrWard: 'Nakuru · Biashara Ward',
+    category: 'Mobile Network & 4G/5G Coverage',
+    countyOrWard: 'Nakuru · Nakuru CBD / Biashara',
     captureMethod: 'text',
-    aiCommitmentResponse: 'Thank you for reporting this blockage. Our county drainage maintenance crew has scheduled clearance along Kenyatta Avenue within 24 hours.',
+    aiCommitmentResponse: 'Thank you for reporting this network outage. Safaricom Radio Access Network (RAN) engineering has scheduled immediate BTS mast diagnostic and power restoration within 4 hours.',
     status: 'Received',
     createdAt: new Date(Date.now() - 1000 * 60 * 95).toISOString(),
   },
@@ -94,18 +94,18 @@ const LOCAL_SAMPLES: Record<
   { text: string; langLabel: DetectedLanguageLabel; translation?: string }
 > = {
   en: {
-    text: 'Hello SEMA team, the street lights along Ngong Road near Adams Arcade have been off for a week and pedestrians feel unsafe at night. Please fix this urgently.',
+    text: 'Hello Safaricom team, our Home Fibre link in Kilimani along Argwings Kodhek has been down with a red LOS indicator for two days. We have critical remote work meetings, please dispatch a fiber technician urgently.',
     langLabel: 'English',
   },
   sw: {
-    text: 'Habari SEMA, tuna shida ya maji hapa mtaa wa South B karibu na soko. Mabomba yamekauka kwa siku nne sasa, tunaomba mrekebishe haraka.',
+    text: 'Habari Safaricom, nilituma pesa kimakosa kupitia M-PESA kwenda namba isiyo sahihi na nikatuma ombi la reversal 456 lakini sijapata ujumbe wowote tangu asubuhi. Naomba msaada wa haraka.',
     langLabel: 'Kiswahili',
-    translation: 'Hello SEMA, we have a water shortage here in South B near the market. Taps have been dry for four days now, please fix it urgently.',
+    translation: 'Hello Safaricom, I accidentally sent money via M-PESA to the wrong number and requested a reversal via 456 but have received no update since morning. Please assist urgently.',
   },
   sheng: {
-    text: 'Niaje SEMA, manze hapa Kasarani barabara imeharibika mbaya sana na matatu zinakwama kwa matope. Tuchanueni vile mtafix hii noma haraka.',
+    text: 'Niaje Safaricom, manze huku Kasarani network ya 4G na 5G imedrop mbaya sana, simu zote zinasoma emergency calls only na bundle haifunguki. Tuchanueni vile mnafix hii issue chapchap.',
     langLabel: 'Sheng',
-    translation: 'Hi SEMA, seriously here in Kasarani the road is badly damaged and matatus are getting stuck in the mud. Let us know how you will fix this problem quickly.',
+    translation: 'Hi Safaricom, seriously here in Kasarani 4G and 5G network has dropped completely, all phones show emergency calls only and data bundles are inaccessible. Please let us know how you will fix this quickly.',
   },
 };
 
@@ -119,10 +119,10 @@ function detectClientLanguage(rawText: string): DetectedLanguageLabel {
     'imetoka', 'kupanic', 'imebeat', 'riba', 'bonga', 'chali', 'madhe'
   ];
   const swahiliWords = [
-    'habari', 'jambo', 'tafadhali', 'shida', 'tatizo', 'stima', 'maji',
-    'barabara', 'serikali', 'huduma', 'tunaomba', 'watu', 'mtaa', 'hospitali',
-    'taka', 'usafi', 'usalama', 'jirani', 'hapa', 'sana', 'kazi', 'tatua',
-    'tuambie', 'mwananchi', 'haraka', 'shule'
+    'habari', 'jambo', 'tafadhali', 'shida', 'tatizo', 'mtandao', 'pesa',
+    'laini', 'huduma', 'tunaomba', 'watu', 'mtaa', 'kadi', 'ujumbe',
+    'kero', 'hasira', 'usalama', 'jirani', 'hapa', 'sana', 'kazi', 'tatua',
+    'tuambie', 'mteja', 'haraka', 'fungua'
   ];
 
   let shengScore = 0;
@@ -142,35 +142,38 @@ function detectClientLanguage(rawText: string): DetectedLanguageLabel {
 
 function detectClientCategory(text: string): string {
   const lower = text.toLowerCase();
-  if (/\b(stima|power|lights?|electricity|transformer|blackout|giza)\b/i.test(lower)) {
-    return 'Power & Street Lighting';
+  if (/\b(fibre|fiber|router|los|optical|wifi|modem|red light|cable cut|slow internet)\b/i.test(lower)) {
+    return 'Home Fibre & Fixed Internet';
   }
-  if (/\b(maji|water|pipe|bomba|burst|taps?|sewer|drainage|flood)\b/i.test(lower)) {
-    return 'Water & Sanitation';
+  if (/\b(mpesa|m-pesa|fuliza|send money|reversal|hakikisha|paybill|till|withdraw|statement)\b/i.test(lower)) {
+    return 'M-PESA & Financial Services';
   }
-  if (/\b(road|barabara|pothole|matatu|nduthi|traffic|bridge|crossing)\b/i.test(lower)) {
-    return 'Roads & Infrastructure';
+  if (/\b(4g|5g|network|signal|coverage|bts|mast|tower|emergency calls|call drop|bundles|airtel|poor reception)\b/i.test(lower)) {
+    return 'Mobile Network & 4G/5G Coverage';
   }
-  if (/\b(hospital|clinic|dispensary|dawa|medicine|doctor|nurse|afya)\b/i.test(lower)) {
-    return 'Health & Medical Services';
+  if (/\b(sim swap|fraud|scam|tapeli|wizi|hack|phishing|line block|puk|stolen line|identity|pin)\b/i.test(lower)) {
+    return 'SIM Swap, Fraud & Security';
   }
-  if (/\b(taka|garbage|waste|chafu|dampo|litter|clean)\b/i.test(lower)) {
-    return 'Waste Management';
+  if (/\b(airtime|bonga|bonga points|postpay|prepay|billing|subscription|skiza|tunukiwa)\b/i.test(lower)) {
+    return 'Customer Care & Airtime Billing';
   }
-  if (/\b(security|usalama|police|thief|wezi|danger|taa)\b/i.test(lower)) {
-    return 'Public Safety & Security';
+  if (/\b(enterprise|leased line|bulk sms|dedicated|cloud|sdwan|api|host|server)\b/i.test(lower)) {
+    return 'Enterprise & Cloud Solutions';
   }
-  return 'Civic & Public Services';
+  if (/\b(merchant|lipa na mpesa|buy goods|merchant till|settlement)\b/i.test(lower)) {
+    return 'Lipa Na M-PESA & Merchant Services';
+  }
+  return 'Home Fibre & Fixed Internet';
 }
 
 function generateClientCommitment(text: string, lang: DetectedLanguageLabel, category: string): string {
   if (lang === 'Sheng') {
-    return `Rada imefika poa! Tumelogi hii issue ya ${category} na wasee wa ground wamechanuliwa kuisort mbio bila delay.`;
+    return `Rada ya Safaricom imefika poa! Tumelogi hii issue ya ${category} na timu yetu ya technical engineers wamepewa alert kuisort mbio bila delay.`;
   }
   if (lang === 'Kiswahili') {
-    return `Asante mwananchi. Tumepokea ripoti yako kuhusu ${category}. Timu yetu ya huduma za dharura imejulishwa na inashughulikia jambo hili mara moja.`;
+    return `Asante mteja wa Safaricom. Tumepokea ripoti yako kuhusu ${category}. Timu yetu ya kiufundi na huduma kwa wateja imejulishwa na inashughulikia hitilafu hii mara moja.`;
   }
-  return `Thank you. SEMA has officially logged your report regarding ${category}. Our rapid response team has been dispatched to investigate and resolve this issue.`;
+  return `Thank you for contacting Safaricom. Your incident regarding ${category} has been logged with our Network Operations Center (NOC). A specialized field & systems team has been assigned for resolution.`;
 }
 
 export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
@@ -434,96 +437,14 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
   };
 
   // Fallback for non-WebSpeech browsers (e.g. Firefox) to record audio
-  const startBackgroundAudioCapture = async () => {
-    try {
-      const mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      activeMediaStreamRef.current = mediaStream;
-      audioChunksRef.current = [];
-
-      let selectedMimeType = 'audio/webm';
-      const preferredTypes = [
-        'audio/webm;codecs=opus',
-        'audio/webm',
-        'audio/mp4',
-        'audio/ogg',
-      ];
-      for (const t of preferredTypes) {
-        if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(t)) {
-          selectedMimeType = t;
-          break;
-        }
-      }
-
-      if (typeof MediaRecorder !== 'undefined') {
-        const recorder = new MediaRecorder(mediaStream, { mimeType: selectedMimeType });
-        mediaRecorderRef.current = recorder;
-
-        recorder.ondataavailable = (event) => {
-          if (event.data && event.data.size > 0) {
-            audioChunksRef.current.push(event.data);
-          }
-        };
-
-        recorder.onstop = async () => {
-          mediaStream?.getTracks().forEach((track) => track.stop());
-          stopAllAudioResources();
-
-          const base = baseTextAtRecordStartRef.current.trim();
-          const persisted = persistedFinalTextRef.current.trim();
-          const sFinal = currentSessionFinalRef.current.trim();
-          const sInterim = currentSessionInterimRef.current.trim();
-          const fullFinal = [base, persisted, sFinal, sInterim]
-            .filter(Boolean)
-            .join(' ')
-            .trim();
-
-          if (fullFinal) {
-            setText(fullFinal);
-            currentTextRef.current = fullFinal;
-            setDetectedLanguage(detectClientLanguage(fullFinal));
-            setCaptureMethod('voice');
-          }
-          setInterimTranscript('');
-          interimTranscriptRef.current = '';
-
-          if (audioChunksRef.current.length > 0) {
-            const audioBlob = new Blob(audioChunksRef.current, { type: selectedMimeType });
-            await transcribeAudioWithGemini(audioBlob, selectedMimeType.split(';')[0], fullFinal);
-          }
-        };
-
-        recorder.start(250);
-      }
-
-      // Connect frequency analyser for Firefox / fallback
-      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-      if (AudioCtx) {
-        const audioCtx = new AudioCtx();
-        audioContextRef.current = audioCtx;
-        const source = audioCtx.createMediaStreamSource(mediaStream);
-        const analyser = audioCtx.createAnalyser();
-        analyser.fftSize = 32;
-        source.connect(analyser);
-        const dataArray = new Uint8Array(analyser.frequencyBinCount);
-
-        const updateLevels = () => {
-          analyser.getByteFrequencyData(dataArray);
-          const bars = Array.from({ length: 8 }, (_, idx) => {
-            const val = dataArray[idx] || 0;
-            return Math.max(16, Math.min(100, Math.round((val / 255) * 100)));
-          });
-          setAudioLevels(bars);
-          animationFrameRef.current = requestAnimationFrame(updateLevels);
-        };
-        updateLevels();
-      }
-    } catch (err: any) {
-      console.warn('Microphone capture error:', err);
-      setVoiceNotice('Microphone access was denied. Please allow microphone permissions in your browser.');
+  // Auto-scroll textarea as live spoken words appear
+  useEffect(() => {
+    if (isRecording && textareaRef.current) {
+      textareaRef.current.scrollTop = textareaRef.current.scrollHeight;
     }
-  };
+  }, [isRecording, text, interimTranscript, textareaRef]);
 
-  // Launch Chrome/Edge/Safari Web Speech Recognition with full audio isolation
+  // Launch Chrome/Edge/Safari Web Speech Recognition with real-time text box transcription
   const launchRecognition = (candidateIndex = 0) => {
     if (!isRecordingStateRef.current) return;
     const SpeechRec =
@@ -531,9 +452,8 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
 
     if (!SpeechRec) {
       setVoiceNotice(
-        'Tip: Live in-browser speech recognition is natively supported in Chrome, Edge, and Safari. Microphone audio is recorded, or you can type directly.'
+        'Recording audio... Your speech will be transcribed as soon as you tap Stop Recording.'
       );
-      startBackgroundAudioCapture();
       return;
     }
 
@@ -620,7 +540,7 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
           );
         } else if (errType === 'network') {
           setVoiceNotice(
-            'Speech recognition network service is temporarily unavailable. You can type directly or try our Sample Voices.'
+            'Speech recognition network is slow or offline. Audio is recorded and will be transcribed automatically on stop.'
           );
         }
       };
@@ -661,14 +581,11 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
             launchRecognition(candidateIndex + 1);
           }
         }, 120);
-      } else {
-        // Fallback to MediaRecorder audio capture
-        startBackgroundAudioCapture();
       }
     }
   };
 
-  const startRecording = () => {
+  const startRecording = async () => {
     setVoiceNotice(null);
     setLatestSubmission(null);
 
@@ -690,20 +607,103 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
       setRecordingSeconds((prev) => prev + 1);
     }, 1000);
 
+    // 1. Request microphone access explicitly to guarantee iframe permission and live audio visualizer
+    let mediaStream: MediaStream | null = null;
+    try {
+      mediaStream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      });
+      activeMediaStreamRef.current = mediaStream;
+
+      // Start Web Audio Frequency Analyser for real-time wave visualizer
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioCtx) {
+        try {
+          const audioCtx = new AudioCtx();
+          audioContextRef.current = audioCtx;
+          const source = audioCtx.createMediaStreamSource(mediaStream);
+          const analyser = audioCtx.createAnalyser();
+          analyser.fftSize = 32;
+          source.connect(analyser);
+          const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+          const updateLevels = () => {
+            if (!isRecordingStateRef.current) return;
+            analyser.getByteFrequencyData(dataArray);
+            const bars = Array.from({ length: 8 }, (_, idx) => {
+              const val = dataArray[idx] || 0;
+              return Math.max(16, Math.min(100, Math.round((val / 255) * 100)));
+            });
+            setAudioLevels(bars);
+            animationFrameRef.current = requestAnimationFrame(updateLevels);
+          };
+          updateLevels();
+        } catch {
+          startVisualizerAnimation();
+        }
+      } else {
+        startVisualizerAnimation();
+      }
+
+      // Start MediaRecorder in background for audio backup
+      audioChunksRef.current = [];
+      let selectedMimeType = 'audio/webm';
+      const preferredTypes = [
+        'audio/webm;codecs=opus',
+        'audio/webm',
+        'audio/mp4',
+        'audio/ogg',
+      ];
+      for (const t of preferredTypes) {
+        if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(t)) {
+          selectedMimeType = t;
+          break;
+        }
+      }
+      if (typeof MediaRecorder !== 'undefined') {
+        try {
+          const recorder = new MediaRecorder(mediaStream, { mimeType: selectedMimeType });
+          mediaRecorderRef.current = recorder;
+          recorder.ondataavailable = (event) => {
+            if (event.data && event.data.size > 0) {
+              audioChunksRef.current.push(event.data);
+            }
+          };
+          recorder.start(250);
+        } catch (recErr) {
+          console.warn('MediaRecorder init error:', recErr);
+        }
+      }
+    } catch (permErr: any) {
+      console.warn('Microphone permission request error:', permErr);
+      if (permErr?.name === 'NotAllowedError' || permErr?.name === 'PermissionDeniedError') {
+        setVoiceNotice(
+          'Microphone permission was denied. Please allow microphone permissions in your browser address bar to speak directly.'
+        );
+        setIsRecording(false);
+        isRecordingStateRef.current = false;
+        if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+        return;
+      }
+      startVisualizerAnimation();
+    }
+
+    // 2. Launch in-browser real-time speech recognition
     const SpeechRec =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
     if (SpeechRec) {
-      // Chrome/Edge/Safari: Exclusive SpeechRecognition for optimal live transcription without device conflict
-      startVisualizerAnimation();
       launchRecognition(0);
     } else {
-      // Non-supporting browsers (Firefox): capture audio via getUserMedia
-      startBackgroundAudioCapture();
+      setVoiceNotice('Your browser will record your audio and transcribe it as soon as you finish speaking.');
     }
   };
 
-  const stopRecording = () => {
+  const stopRecording = async () => {
     setIsRecording(false);
     isRecordingStateRef.current = false;
 
@@ -717,20 +717,45 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
       .join(' ')
       .trim();
 
+    const hadSpokenSpeech = Boolean([persisted, sFinal, sInterim].filter(Boolean).join(' ').trim());
+
     if (fullFinal) {
       setText(fullFinal);
       currentTextRef.current = fullFinal;
       setDetectedLanguage(detectClientLanguage(fullFinal));
       setCaptureMethod('voice');
-    } else if (!base) {
-      setVoiceNotice(
-        'No words were detected. Check your microphone volume, speak clearly into the mic, or click any "Try Sample Voice" button below to test.'
-      );
     }
     setInterimTranscript('');
     interimTranscriptRef.current = '';
 
+    // Snapshot current audio chunks before stopping resources
+    const currentChunks = [...audioChunksRef.current];
     stopAllAudioResources();
+
+    // If SpeechRecognition produced NO text during the recording session, but we have audio chunks:
+    // automatically transcribe using Gemini API backend
+    if (!hadSpokenSpeech && currentChunks.length > 0) {
+      let selectedMimeType = 'audio/webm';
+      const preferredTypes = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg'];
+      for (const t of preferredTypes) {
+        if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(t)) {
+          selectedMimeType = t;
+          break;
+        }
+      }
+      const audioBlob = new Blob(currentChunks, { type: selectedMimeType });
+      if (audioBlob.size > 500) {
+        await transcribeAudioWithGemini(audioBlob, selectedMimeType.split(';')[0], base);
+      } else if (!base) {
+        setVoiceNotice(
+          'No words were detected. Check your microphone volume, speak clearly into the mic, or click any "Try Sample Voice" button below to test.'
+        );
+      }
+    } else if (!fullFinal) {
+      setVoiceNotice(
+        'No words were detected. Check your microphone volume, speak clearly into the mic, or click any "Try Sample Voice" button below to test.'
+      );
+    }
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1112,6 +1137,15 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
 
             {/* Direct Text Box (Textarea) */}
             <div className="relative">
+              {isRecording && (
+                <div className="flex items-center justify-between gap-2 px-3.5 py-2 mb-2 bg-emerald-50 border border-emerald-300 rounded-lg text-xs font-semibold text-emerald-950 shadow-2xs">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-red-600 animate-ping" />
+                    <span>Real-Time Voice Transcription Active: Speak now — words appear directly in the box</span>
+                  </div>
+                  <span className="font-mono text-emerald-800 text-[11px] font-bold">LIVE MIC ON</span>
+                </div>
+              )}
               <label htmlFor="sema-main-textbox" className="sr-only">
                 Tell us the problem in English, Kiswahili, or Sheng
               </label>
@@ -1129,7 +1163,11 @@ export const VoiceTextCaptureHero: React.FC<VoiceTextCaptureHeroProps> = ({
                   setCaptureMethod((prev) => (prev === 'voice' ? 'hybrid' : 'text'));
                   setDetectedLanguage(detectClientLanguage(val));
                 }}
-                placeholder={currentPhrase.placeholder}
+                placeholder={
+                  isRecording
+                    ? 'Listening... speak clearly and your words will transcribe right here in real time'
+                    : currentPhrase.placeholder
+                }
                 className="w-full p-4 text-base text-slate-900 bg-white border-2 border-emerald-800/20 focus:border-emerald-700 rounded-xl focus:outline-none leading-relaxed placeholder:text-slate-400 resize-y transition-colors"
               />
 

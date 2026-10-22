@@ -8,20 +8,31 @@ interface QrCodePanelProps {
   onCloseModal: () => void;
 }
 
-const DEFAULT_SHARED_URL =
-  'https://ais-pre-zbdvqt3qamccte56qebtm2-576766090545.europe-west3.run.app';
+export const LIVE_PUBLIC_WEB_URL =
+  'https://ais-pre-zhdir2qsygkujxuwikuyds-576766090545.europe-west3.run.app';
+
+export function getScannableWebUrl(): string {
+  if (typeof window !== 'undefined' && window.location) {
+    const { hostname, origin } = window.location;
+    // When running locally or in development container, phone cameras scanning the QR code
+    // cannot resolve localhost:3000. Use the publicly accessible Cloud Run URL.
+    if (!hostname || hostname === 'localhost' || hostname === '127.0.0.1' || hostname.includes('internal')) {
+      return LIVE_PUBLIC_WEB_URL;
+    }
+    if (origin && origin.startsWith('https://')) {
+      return origin;
+    }
+  }
+  return LIVE_PUBLIC_WEB_URL;
+}
 
 export const QrCodePanel: React.FC<QrCodePanelProps> = ({
   isModalOpen,
   onOpenModal,
   onCloseModal,
 }) => {
-  const liveOrigin =
-    typeof window !== 'undefined' && window.location.origin
-      ? window.location.origin
-      : DEFAULT_SHARED_URL;
-
-  const [targetUrl, setTargetUrl] = useState<string>(liveOrigin);
+  const initialUrl = getScannableWebUrl();
+  const [targetUrl, setTargetUrl] = useState<string>(initialUrl);
   const [copied, setCopied] = useState(false);
 
   const handleCopyUrl = async () => {
@@ -51,7 +62,7 @@ export const QrCodePanel: React.FC<QrCodePanelProps> = ({
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = 'SEMA-Kenya-Landing-Page-QR.svg';
+    link.download = 'Safaricom-SEMA-QR.svg';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -67,9 +78,9 @@ export const QrCodePanel: React.FC<QrCodePanelProps> = ({
         <div className="space-y-4">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-xs font-medium text-emerald-800">Mobile Instant Access · Kenya</p>
+              <p className="text-xs font-medium text-emerald-800">Mobile Instant Access · Safaricom Kenya</p>
               <h2 className="text-lg font-bold text-slate-900 mt-0.5">
-                Scan QR to Open SEMA
+                Scan QR to Open Safaricom SEMA
               </h2>
             </div>
             <button
@@ -84,7 +95,7 @@ export const QrCodePanel: React.FC<QrCodePanelProps> = ({
           </div>
 
           <p className="text-xs text-slate-600 leading-relaxed">
-            Scan with any smartphone camera to open this SEMA landing page and record your voice in
+            Scan with any smartphone camera to open Safaricom SEMA and report your Home Fibre, M-PESA, or network issue in
             English, Kiswahili, or Sheng on the go.
           </p>
 
@@ -193,10 +204,10 @@ export const QrCodePanel: React.FC<QrCodePanelProps> = ({
             <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-4">
               <div>
                 <p className="text-xs font-semibold text-emerald-700">
-                  SEMA Kenya · Direct Landing Page QR
+                  Safaricom SEMA · Direct Incident Capture QR
                 </p>
                 <h3 id="qr-modal-title" className="text-xl font-bold text-slate-900 mt-0.5">
-                  Scan to Speak or Type Your Issue
+                  Scan to Report Home Fibre, M-PESA or Network Issues
                 </h3>
               </div>
               <button

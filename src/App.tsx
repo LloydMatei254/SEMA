@@ -13,152 +13,190 @@ import { SubmissionRecord } from './types';
 const INITIAL_SUBMISSIONS: SubmissionRecord[] = [
   {
     id: 'sema-101',
-    referenceCode: 'SEMA-KE-8041',
-    text: 'Stima imepotea hapa Roysambu karibu na TRM tangu jana usiku na transformers zinatoa cheche. Tafadhali mtusaidie haraka.',
+    referenceCode: 'SEMA-SAF-8041',
+    text: 'Router ya Safaricom Home Fibre inawaka red hapa Roysambu karibu na TRM tangu jana usiku, internet imelost na kazi imesimama. Tafadhali tusaidieni kuangalia fiber cable haraka.',
     detectedLanguage: 'Kiswahili',
-    englishTranslation: 'Electricity has been out here in Roysambu near TRM since last night and the transformers are sparking. Please help us urgently.',
-    category: 'Power & Street Lighting',
-    countyOrWard: 'Nairobi · Roysambu',
+    englishTranslation: 'The Safaricom Home Fibre router has a blinking red LOS light here in Roysambu near TRM since last night, internet is down and remote work has stopped. Please inspect the fiber optical cable urgently.',
+    category: 'Home Fibre & Fixed Internet',
+    countyOrWard: 'Nairobi · Roysambu / Lumumba Drive',
     captureMethod: 'voice',
-    aiCommitmentResponse: 'Tumepokea ripoti yako kuhusu hitilafu ya stima Roysambu. Timu ya dharura imetumwa kuchunguza transformer hiyo mara moja.',
+    aiCommitmentResponse: 'Tumepokea ripoti yako kuhusu mtandao wa Safaricom Home Fibre Roysambu. Timu yetu ya fiber engineering imetumwa mara moja kurekebisha line hiyo.',
     status: 'In Progress',
     priority: 'Urgent',
-    assignedTeam: 'Kenya Power Emergency & Streetlighting Unit',
+    assignedTeam: 'Safaricom Home Fibre & Enterprise NOC',
     assignedOfficer: 'Eng. Dennis Kiprono',
-    assignedOfficerEmail: 'dennis.kiprono@kplc.co.ke',
+    assignedOfficerEmail: 'dennis.kiprono@safaricom.co.ke',
     emailAlertSent: true,
-    emailAlertRecipient: 'dennis.kiprono@kplc.co.ke',
+    emailAlertRecipient: 'dennis.kiprono@safaricom.co.ke',
     emailAlertSentAt: new Date(Date.now() - 1000 * 60 * 17).toISOString(),
-    emailAlertSubject: '[SEMA DISPATCH ALERT] SEMA-KE-8041 - Power & Street Lighting (Urgent Priority)',
+    emailAlertSubject: '[SAFARICOM NOC DISPATCH] SEMA-SAF-8041 - Home Fibre Optical Node Fault (Urgent Priority)',
     emailAlertBody: `======================================================
-SEMA NATIONAL CITIZEN INCIDENT DISPATCH NOTICE
-Government of Kenya - Municipal Rapid Response Command
+SAFARICOM PLC - RAPID INCIDENT DISPATCH NOTICE
+Network Operations Center (NOC) & Customer Escalations
 ======================================================
 
-INCIDENT REFERENCE: SEMA-KE-8041
+INCIDENT REFERENCE: SEMA-SAF-8041
 PRIORITY / URGENCY: URGENT
 TARGET SLA:         2 hours
-CATEGORY:           Power & Street Lighting
-LOCATION:           Nairobi · Roysambu
+CATEGORY:           Home Fibre & Fixed Internet
+LOCATION:           Nairobi · Roysambu / Lumumba Drive
 
 ASSIGNED FIELD OFFICER:
-  Officer: Eng. Dennis Kiprono
-  Email:   dennis.kiprono@kplc.co.ke
-  Team:    Kenya Power Emergency & Streetlighting Unit
+  Engineer: Eng. Dennis Kiprono
+  Email:    dennis.kiprono@safaricom.co.ke
+  Team:     Safaricom Home Fibre & Enterprise NOC
 
 ------------------------------------------------------
-CITIZEN INCIDENT REPORT (ORIGINAL):
+CUSTOMER INCIDENT REPORT (ORIGINAL):
 ------------------------------------------------------
-"Stima imepotea hapa Roysambu karibu na TRM tangu jana usiku na transformers zinatoa cheche. Tafadhali mtusaidie haraka."
+"Router ya Safaricom Home Fibre inawaka red hapa Roysambu karibu na TRM tangu jana usiku, internet imelost na kazi imesimama. Tafadhali tusaidieni kuangalia fiber cable haraka."
 Language: Kiswahili (Capture Method: voice)
-English Translation: "Electricity has been out here in Roysambu near TRM since last night and the transformers are sparking. Please help us urgently."
+English Translation: "The Safaricom Home Fibre router has a blinking red LOS light here in Roysambu near TRM since last night, internet is down and remote work has stopped. Please inspect the fiber optical cable urgently."
 
 ------------------------------------------------------
 DISPATCH & AI ROUTING DIRECTIVES:
 ------------------------------------------------------
-Routing Rationale: Active sparking transformer near TRM poses immediate fire and electrocution hazard.
-Admin Directives:  Field crew dispatched with hydraulic lift truck. Transformer isolation in progress.
+Routing Rationale: Red Optical Loss of Signal (LOS) reported on feeder cable affecting residential broadband cluster near TRM.
+Directives:        Safaricom metro fiber splicing crew dispatched with OTDR fault locator. Re-splicing drop cable at pole terminal.
 
 REQUIRED IMMEDIATE ACTIONS:
-1. Confirm receipt and mobilize ground response crew within target SLA window (2 hours).
-2. Update incident milestone status to "In Progress" in the SEMA Dispatch Console upon arrival.
-3. Submit post-intervention clearance report upon completion.
+1. Acknowledge dispatch ticket and verify line optical power (dBm) within SLA window (2 hours).
+2. Update incident milestone status to "In Progress" in the Safaricom Dispatch Console.
+3. Verify customer optical link recovery and submit clearance memo.
 
-Dispatch Console Access: https://sema.go.ke/admin?ref=SEMA-KE-8041
+Dispatch Console Access: https://safaricom.co.ke/dispatch?ref=SEMA-SAF-8041
+Automated alert dispatched by Safaricom SEMA Intelligent NOC Operations.
 ======================================================`,
     aiClassification: {
-      category: 'Power & Street Lighting',
+      category: 'Home Fibre & Fixed Internet',
       urgency: 'Urgent',
-      recommendedTeam: 'Kenya Power Emergency & Streetlighting Unit',
-      rationale: 'Active sparking transformer near TRM poses immediate fire and electrocution hazard.',
+      recommendedTeam: 'Safaricom Home Fibre & Enterprise NOC',
+      rationale: 'Red Optical Loss of Signal (LOS) reported on feeder cable affecting residential broadband cluster near TRM.',
       estimatedSLA: '2 hours',
+      sentiment: 'Distressed',
+      tensionLevel: 'High',
+      frustrationScore: 92,
+      isHighTension: true,
+      tensionFactors: ['Home Fibre red LOS blinking', 'Remote work completely interrupted', 'Extended overnight outage'],
+      tensionNotes: 'Flagged High Tension (92/100): Customer in Roysambu expresses severe distress over lost working hours due to optical fiber line failure.',
     },
-    adminNotes: 'Field crew dispatched with hydraulic lift truck. Transformer isolation in progress.',
+    sentiment: 'Distressed',
+    tensionLevel: 'High',
+    frustrationScore: 92,
+    isHighTension: true,
+    tensionFactors: ['Home Fibre red LOS blinking', 'Remote work completely interrupted', 'Extended overnight outage'],
+    tensionNotes: 'Flagged High Tension (92/100): Customer in Roysambu expresses severe distress over lost working hours due to optical fiber line failure.',
+    adminNotes: 'Safaricom metro fiber splicing crew dispatched with OTDR fault locator. Re-splicing drop cable at pole terminal.',
     createdAt: new Date(Date.now() - 1000 * 60 * 18).toISOString(),
   },
   {
     id: 'sema-102',
-    referenceCode: 'SEMA-KE-8042',
-    text: 'Manze maji imelost huku Umoja Innercore for four days sasa na mabomba zimepasuka hapo kwa stage. Chanueni wasee wa maji wafix hii noma.',
+    referenceCode: 'SEMA-SAF-8042',
+    text: 'Manze chapaa ya M-PESA imekwama kwa Paybill ya hospitali tangu asubuhi lakini message haijakam na mgonjwa hawezi release-iwa. Chanueni wasee wa M-PESA wasort hii transaction mbio!',
     detectedLanguage: 'Sheng',
-    englishTranslation: 'Water has been out here in Umoja Innercore for four days now and the pipes have burst near the bus stage. Alert the water maintenance team to fix this issue.',
-    category: 'Water & Sanitation',
-    countyOrWard: 'Nairobi · Umoja',
+    englishTranslation: 'My M-PESA money has been stuck on a hospital Paybill since morning but no confirmation SMS was received and the patient cannot be discharged. Alert M-PESA core operations to resolve this transaction urgently!',
+    category: 'M-PESA & Financial Services',
+    countyOrWard: 'Nairobi · Umoja / Buruburu',
     captureMethod: 'voice',
-    aiCommitmentResponse: 'Rada imefika! Wasee wa maji wamepewa alert kuhusu hiyo bomba imepasuka hapo Umoja stage na wako njiani kuisort.',
+    aiCommitmentResponse: 'Rada imefika safi! M-PESA core escalations desk imepewa alert kuhusu hii transaction na wanacheck settlement records mara hii.',
     status: 'Assigned',
-    priority: 'High',
-    assignedTeam: 'Nairobi / County Water & Sewerage Rapid Response',
+    priority: 'Urgent',
+    assignedTeam: 'M-PESA Escalations & Reversals Operations',
     assignedOfficer: 'Officer Grace Mwangi',
-    assignedOfficerEmail: 'grace.mwangi@nairobiwater.co.ke',
+    assignedOfficerEmail: 'grace.mwangi@safaricom.co.ke',
     emailAlertSent: true,
-    emailAlertRecipient: 'grace.mwangi@nairobiwater.co.ke',
+    emailAlertRecipient: 'grace.mwangi@safaricom.co.ke',
     emailAlertSentAt: new Date(Date.now() - 1000 * 60 * 40).toISOString(),
-    emailAlertSubject: '[SEMA DISPATCH ALERT] SEMA-KE-8042 - Water & Sanitation (High Priority)',
+    emailAlertSubject: '[SAFARICOM M-PESA ALERT] SEMA-SAF-8042 - Hospital Paybill Transaction Stuck (Urgent Priority)',
     emailAlertBody: `======================================================
-SEMA NATIONAL CITIZEN INCIDENT DISPATCH NOTICE
-Government of Kenya - Municipal Rapid Response Command
+SAFARICOM PLC - RAPID INCIDENT DISPATCH NOTICE
+M-PESA Escalations & Core Operations Command
 ======================================================
 
-INCIDENT REFERENCE: SEMA-KE-8042
-PRIORITY / URGENCY: HIGH
-TARGET SLA:         4 hours
-CATEGORY:           Water & Sanitation
-LOCATION:           Nairobi · Umoja
+INCIDENT REFERENCE: SEMA-SAF-8042
+PRIORITY / URGENCY: URGENT
+TARGET SLA:         30 minutes
+CATEGORY:           M-PESA & Financial Services
+LOCATION:           Nairobi · Umoja / Buruburu
 
 ASSIGNED FIELD OFFICER:
   Officer: Officer Grace Mwangi
-  Email:   grace.mwangi@nairobiwater.co.ke
-  Team:    Nairobi / County Water & Sewerage Rapid Response
+  Email:   grace.mwangi@safaricom.co.ke
+  Team:    M-PESA Escalations & Reversals Operations
 
 ------------------------------------------------------
-CITIZEN INCIDENT REPORT (ORIGINAL):
+CUSTOMER INCIDENT REPORT (ORIGINAL):
 ------------------------------------------------------
-"Manze maji imelost huku Umoja Innercore for four days sasa na mabomba zimepasuka hapo kwa stage. Chanueni wasee wa maji wafix hii noma."
+"Manze chapaa ya M-PESA imekwama kwa Paybill ya hospitali tangu asubuhi lakini message haijakam na mgonjwa hawezi release-iwa. Chanueni wasee wa M-PESA wasort hii transaction mbio!"
 Language: Sheng (Capture Method: voice)
-English Translation: "Water has been out here in Umoja Innercore for four days now and the pipes have burst near the bus stage. Alert the water maintenance team to fix this issue."
+English Translation: "My M-PESA money has been stuck on a hospital Paybill since morning but no confirmation SMS was received and the patient cannot be discharged. Alert M-PESA core operations to resolve this transaction urgently!"
 
 ------------------------------------------------------
 DISPATCH & AI ROUTING DIRECTIVES:
 ------------------------------------------------------
-Routing Rationale: Burst water mains along public stage causing major water loss and street pooling.
-Admin Directives:  Assigned to Eastern Zone water maintenance crew.
+Routing Rationale: Patient discharge delayed due to pending hospital Paybill transaction callback timeout.
+Directives:        Emergency M-PESA gateway transaction query executed. Forced API settlement in progress.
 
 REQUIRED IMMEDIATE ACTIONS:
-1. Confirm receipt and mobilize ground response crew within target SLA window (4 hours).
-2. Update incident milestone status to "In Progress" in the SEMA Dispatch Console upon arrival.
-3. Submit post-intervention clearance report upon completion.
+1. Re-query core M-PESA switch log and push B2C/B2B confirmation callback within target SLA (30 min).
+2. Update incident milestone status to "In Progress" in the Safaricom Dispatch Console.
+3. Transmit confirmation SMS to citizen and hospital billing accounts desk.
 
-Dispatch Console Access: https://sema.go.ke/admin?ref=SEMA-KE-8042
+Dispatch Console Access: https://safaricom.co.ke/dispatch?ref=SEMA-SAF-8042
+Automated alert dispatched by Safaricom SEMA Intelligent NOC Operations.
 ======================================================`,
     aiClassification: {
-      category: 'Water & Sanitation',
-      urgency: 'High',
-      recommendedTeam: 'Nairobi / County Water & Sewerage Rapid Response',
-      rationale: 'Burst water mains along public stage causing major water loss and street pooling.',
-      estimatedSLA: '4 hours',
+      category: 'M-PESA & Financial Services',
+      urgency: 'Urgent',
+      recommendedTeam: 'M-PESA Escalations & Reversals Operations',
+      rationale: 'Patient discharge delayed due to pending hospital Paybill transaction callback timeout.',
+      estimatedSLA: '30 minutes',
+      sentiment: 'Frustrated',
+      tensionLevel: 'High',
+      frustrationScore: 88,
+      isHighTension: true,
+      tensionFactors: ['Hospital discharge blocked by payment delay', 'High agitation over trapped funds', 'Unreceived M-PESA confirmation SMS'],
+      tensionNotes: 'Flagged High Tension (88/100): Critical medical payment impasse caused by pending transaction callback in Umoja.',
     },
-    adminNotes: 'Assigned to Eastern Zone water maintenance crew.',
+    sentiment: 'Frustrated',
+    tensionLevel: 'High',
+    frustrationScore: 88,
+    isHighTension: true,
+    tensionFactors: ['Hospital discharge blocked by payment delay', 'High agitation over trapped funds', 'Unreceived M-PESA confirmation SMS'],
+    tensionNotes: 'Flagged High Tension (88/100): Critical medical payment impasse caused by pending transaction callback in Umoja.',
+    adminNotes: 'Emergency M-PESA gateway transaction query executed. Forced API settlement in progress.',
     createdAt: new Date(Date.now() - 1000 * 60 * 42).toISOString(),
   },
   {
     id: 'sema-103',
-    referenceCode: 'SEMA-KE-8043',
-    text: 'The drainage channel along Kenyatta Avenue in Nakuru CBD is blocked with debris and causing flooding near the pedestrian crossing whenever it rains.',
+    referenceCode: 'SEMA-SAF-8043',
+    text: 'Our entire estate along Kenyatta Avenue in Nakuru CBD has experienced severe 4G and 5G network dropouts with emergency calls only on all Safaricom lines since the thunderstorm yesterday.',
     detectedLanguage: 'English',
-    category: 'Roads & Infrastructure',
-    countyOrWard: 'Nakuru · Biashara Ward',
+    category: 'Mobile Network & 4G/5G Coverage',
+    countyOrWard: 'Nakuru · Nakuru CBD / Biashara',
     captureMethod: 'text',
-    aiCommitmentResponse: 'Thank you for reporting this blockage. Our county drainage maintenance crew has scheduled clearance along Kenyatta Avenue within 24 hours.',
+    aiCommitmentResponse: 'Thank you for reporting this network outage. Safaricom Radio Access Network (RAN) engineering has scheduled immediate BTS mast diagnostic and power restoration within 4 hours.',
     status: 'Received',
-    priority: 'Medium',
+    priority: 'High',
     aiClassification: {
-      category: 'Roads & Infrastructure',
-      urgency: 'Medium',
-      recommendedTeam: 'KeRRA & KURA Urban Roads & Drainage Taskforce',
-      rationale: 'Stormwater overflow risk in commercial district; requires silt and debris clearance.',
-      estimatedSLA: '24 hours',
+      category: 'Mobile Network & 4G/5G Coverage',
+      urgency: 'High',
+      recommendedTeam: '4G / 5G Mobile Network & Base Transceiver (BTS) Team',
+      rationale: 'Severe 4G/5G radio carrier dropout following thunderstorm affecting central business district.',
+      estimatedSLA: '4 hours',
+      sentiment: 'Neutral',
+      tensionLevel: 'Standard',
+      frustrationScore: 40,
+      isHighTension: false,
+      tensionFactors: ['Widespread commercial BTS sector degradation'],
+      tensionNotes: 'Standard network outage ticket (40/100): Clear technical description of Nakuru CBD 4G/5G coverage degradation.',
     },
+    sentiment: 'Neutral',
+    tensionLevel: 'Standard',
+    frustrationScore: 40,
+    isHighTension: false,
+    tensionFactors: ['Widespread commercial BTS sector degradation'],
+    tensionNotes: 'Standard network outage ticket (40/100): Clear technical description of Nakuru CBD 4G/5G coverage degradation.',
     createdAt: new Date(Date.now() - 1000 * 60 * 95).toISOString(),
   },
 ];
