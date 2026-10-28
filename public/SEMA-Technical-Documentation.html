@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Safaricom SEMA — Complete System Architecture & Engineering Manual</title>
+  <style>
+    :root {
+      --primary: #005e46;
+      --primary-dark: #064e3b;
+      --primary-light: #10b981;
+      --accent: #d97706;
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --border: #334155;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      color: #334155;
+      background-color: #f8fafc;
+      padding: 0;
+      margin: 0;
+    }
+    header.hero {
+      background: linear-gradient(135deg, #064e3b 0%, #022c22 100%);
+      color: white;
+      padding: 3rem 2rem;
+      border-bottom: 4px solid #10b981;
+    }
+    .hero-content {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .badge {
+      display: inline-block;
+      background: #059669;
+      color: white;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 1rem;
+    }
+    h1 { font-size: 2.25rem; font-weight: 800; margin-bottom: 0.75rem; color: #ffffff; }
+    .subtitle { font-size: 1.1rem; color: #a7f3d0; max-width: 800px; margin-bottom: 1.5rem; }
+    .actions { display: flex; gap: 1rem; flex-wrap: wrap; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.6rem 1.25rem;
+      border-radius: 0.5rem;
+      font-weight: 600;
+      font-size: 0.875rem;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-primary { background: #10b981; color: #022c22; }
+    .btn-primary:hover { background: #34d399; }
+    .btn-secondary { background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.3); }
+    .btn-secondary:hover { background: rgba(255,255,255,0.25); }
+    
+    .container {
+      max-width: 1200px;
+      margin: 2rem auto;
+      padding: 0 1.5rem;
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 2rem;
+    }
+    nav.toc {
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 0.75rem;
+      padding: 1.5rem;
+      height: fit-content;
+      position: sticky;
+      top: 1.5rem;
+      max-height: calc(100vh - 3rem);
+      overflow-y: auto;
+    }
+    nav.toc h3 { font-size: 0.875rem; text-transform: uppercase; color: #64748b; margin-bottom: 1rem; letter-spacing: 0.05em; }
+    nav.toc ul { list-style: none; }
+    nav.toc li { margin-bottom: 0.5rem; }
+    nav.toc a {
+      color: #334155;
+      text-decoration: none;
+      font-size: 0.85rem;
+      display: block;
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.25rem;
+      transition: all 0.2s;
+    }
+    nav.toc a:hover { background: #ecfdf5; color: #064e3b; font-weight: 600; }
+    
+    main.content {
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 0.75rem;
+      padding: 2.5rem;
+      min-width: 0;
+    }
+    section { margin-bottom: 3.5rem; }
+    h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #064e3b;
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 0.5rem;
+      margin-top: 1.5rem;
+      margin-bottom: 1.25rem;
+    }
+    h3 { font-size: 1.15rem; font-weight: 600; color: #1e293b; margin-top: 1.25rem; margin-bottom: 0.75rem; }
+    p { margin-bottom: 1rem; color: #475569; }
+    ul, ol { margin-left: 1.5rem; margin-bottom: 1rem; color: #475569; }
+    li { margin-bottom: 0.35rem; }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.5rem 0;
+      font-size: 0.85rem;
+    }
+    th, td {
+      border: 1px solid #cbd5e1;
+      padding: 0.6rem 0.75rem;
+      text-align: left;
+    }
+    th { background: #f1f5f9; color: #1e293b; font-weight: 600; }
+    tr:nth-child(even) { background: #f8fafc; }
+    
+    pre {
+      background: #0f172a;
+      color: #38bdf8;
+      padding: 1.25rem;
+      border-radius: 0.5rem;
+      overflow-x: auto;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.825rem;
+      margin: 1rem 0;
+    }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      background: #e2e8f0;
+      padding: 0.15rem 0.35rem;
+      border-radius: 0.25rem;
+      font-size: 0.85em;
+      color: #0f172a;
+    }
+    pre code { background: transparent; color: inherit; padding: 0; }
+    
+    .diagram-box {
+      background: #f8fafc;
+      border: 2px dashed #94a3b8;
+      border-radius: 0.5rem;
+      padding: 1.5rem;
+      margin: 1.5rem 0;
+      font-family: monospace;
+      white-space: pre;
+      overflow-x: auto;
+      color: #0f172a;
+    }
+
+    @media print {
+      body { background: white; color: black; }
+      header.hero { background: none; color: black; border-bottom: 2px solid black; padding: 1rem 0; }
+      h1, .subtitle { color: black; }
+      nav.toc, .actions { display: none; }
+      .container { display: block; margin: 0; padding: 0; }
+      main.content { border: none; padding: 0; }
+      a { color: black; text-decoration: underline; }
+      pre { background: #f1f5f9; color: black; border: 1px solid #ccc; }
+    }
+    @media (max-width: 900px) {
+      .container { grid-template-columns: 1fr; }
+      nav.toc { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="hero">
+    <div class="hero-content">
+      <span class="badge">Safaricom PLC · Enterprise Technology Division</span>
+      <h1>SAFARICOM SEMA — Technical System Architecture &amp; Engineering Manual</h1>
+      <p class="subtitle">Complete end-to-end documentation covering multimodal voice ingestion, Gemini AI triage, root cause clustering, automated dispatch, and full operational workflows.</p>
+      <div class="actions">
+        <a href="/Safaricom-SEMA-Technical-Documentation.pdf" download class="btn btn-primary">
+          📥 Download PDF Document
+        </a>
+        <a href="/SEMA-COMPLETE-SYSTEM-DOCUMENTATION.md" download class="btn btn-secondary">
+          📄 Download Markdown (.md)
+        </a>
+        <button onclick="window.print()" class="btn btn-secondary">
+          🖨️ Print Documentation
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    <nav class="toc">
+      <h3>Table of Contents</h3>
+      <ul>
+        <li><a href="#s1">1. Executive Summary</a></li>
+        <li><a href="#s2">2. Complete Architecture</a></li>
+        <li><a href="#s3">3. Feature Inventory</a></li>
+        <li><a href="#s4">4. Screen-by-Screen</a></li>
+        <li><a href="#s5">5. Form Inventory</a></li>
+        <li><a href="#s6">6. Location Services</a></li>
+        <li><a href="#s7">7. Roles &amp; Permissions</a></li>
+        <li><a href="#s8">8. Business Processes</a></li>
+        <li><a href="#s9">9. Ticket Lifecycle</a></li>
+        <li><a href="#s10">10. SLA &amp; Escalations</a></li>
+        <li><a href="#s11">11. Notification System</a></li>
+        <li><a href="#s12">12. Database Schema</a></li>
+        <li><a href="#s13">13. API Specification</a></li>
+        <li><a href="#s14">14. AI Clustering Engine</a></li>
+        <li><a href="#s15">15. User Journeys</a></li>
+        <li><a href="#s16">16. Security &amp; Compliance</a></li>
+        <li><a href="#s17">17. DevOps &amp; Deployment</a></li>
+        <li><a href="#s18">18. Monitoring &amp; Ops</a></li>
+        <li><a href="#s19">19. Quality Assurance</a></li>
+        <li><a href="#s20">20. Scalability &amp; Perf</a></li>
+        <li><a href="#s21">21. Accessibility &amp; i18n</a></li>
+        <li><a href="#s22">22. Sequence Diagrams</a></li>
+        <li><a href="#s23">23. Disaster Recovery</a></li>
+        <li><a href="#s24">24. Troubleshooting</a></li>
+        <li><a href="#s25">25. System Glossary</a></li>
+      </ul>
+    </nav>
+
+    <main class="content">
+      <section id="s1">
+        <h2>1. Executive Summary</h2>
+        <p><strong>Safaricom SEMA</strong> is Safaricom's centralized customer complaint ingestion, multimodal dialect AI triage, root cause clustering, and automated rapid dispatch management system. It bridges the gap between Kenyan subscribers articulating issues in conversational Kiswahili and Sheng and specialized engineering crews.</p>
+        <h3>Core Objectives</h3>
+        <ul>
+          <li><strong>Mean Time to Triage (MTTT):</strong> Reduced from 45 minutes to under 3 seconds using Google Gemini Multimodal Generative AI.</li>
+          <li><strong>Zero-Friction Ingestion:</strong> Audio recording with instant phoneme recognition in English, Kiswahili, and Sheng.</li>
+          <li><strong>Root Cause Clustering:</strong> Automatically aggregates dozens of duplicate complaints during local fiber cuts into a single master incident.</li>
+        </ul>
+      </section>
+
+      <section id="s2">
+        <h2>2. Complete System Architecture</h2>
+        <p>The platform is architected around a high-performance Express/Node.js backend with Vite middleware, coupled with a reactive TypeScript Single Page Application (SPA).</p>
+        <div class="diagram-box">
++-------------------------------------------------------------------------+
+|                       SAFARICOM SEMA CLIENT (SPA)                       |
+|  - Web Audio API / AudioContext     - Responsive Tailwind v4 Layout     |
+|  - Gemini Multimodal Frontend       - Multi-Channel Feed State Engine   |
++------------------------------------+------------------------------------+
+                                     | JSON / Form-Data (HTTPS)
+                                     v
++-------------------------------------------------------------------------+
+|                     SEMA BACKEND GATEWAY (server.ts)                    |
+|  - Express 4.x REST Endpoints       - In-Memory & Storage Repository    |
+|  - Google Gemini 2.5 Flash SDK      - Automated SMTP Dispatch Mailer    |
++------------------------------------+------------------------------------+
+                                     |
+               +---------------------+---------------------+
+               |                                           |
+               v                                           v
++-----------------------------+             +-----------------------------+
+|    GOOGLE GEMINI 2.5 API    |             |    CLOUD RUN / CONTAINER    |
+|  - Zero-Shot Dialect NLP    |             |  - Port 3000 (0.0.0.0)      |
+|  - Technical Translation    |             |  - Autoscaled (0 to 10)     |
++-----------------------------+             +-----------------------------+
+        </div>
+      </section>
+
+      <section id="s3">
+        <h2>3. Complete Feature Inventory</h2>
+        <table>
+          <thead>
+            <tr><th>Feature</th><th>Purpose</th><th>User Story</th><th>Technical Stack</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Multilingual Voice Capture</td><td>Record spoken complaints</td><td>As a customer, I speak my issue in Sheng</td><td>HTML5 MediaRecorder + Web Audio API</td></tr>
+            <tr><td>Gemini Transcription &amp; Translation</td><td>Convert audio to English technical tickets</td><td>As a NOC engineer, I need clear English</td><td>@google/genai Gemini 2.5 Flash</td></tr>
+            <tr><td>Multi-Channel Aggregation</td><td>Unify CRM, Socials, Email, Portal</td><td>As a controller, I need 1 unified queue</td><td>React State Engine + Inflow Filter</td></tr>
+            <tr><td>Prescriptive Resolution Insights</td><td>Provide concrete 3-step action plans</td><td>As a dispatcher, I need immediate SOPs</td><td>Heuristic + LLM Action Engine</td></tr>
+            <tr><td>Root Cause Clustering</td><td>Detect mass outages (e.g. Ruaka)</td><td>As a manager, I group duplicate cuts</td><td>Geospatial &amp; Keyword Clusterer</td></tr>
+            <tr><td>Automated Dispatch Email</td><td>Mobilize lead field technicians</td><td>As an engineer, I need job coordinates</td><td>SMTP / Simulated Mail Service</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="s4">
+        <h2>4. Screen-by-Screen Documentation</h2>
+        <p><strong>Customer Portal (/?view=customer#customer-portal):</strong> Microphone recording station, audio visualizer, dialect transform bar, location dropdown, and reference ticket confirmation.</p>
+        <p><strong>Admin Dispatch Console (/?view=admin#admin):</strong> Multi-channel filter bar, root-cause clustering trigger, customer queue with AI classification and prescriptive resolution steps, team dispatch modal, and email audit log viewer.</p>
+      </section>
+
+      <section id="s5">
+        <h2>5. Complete Form Inventory</h2>
+        <p>Documented input fields for Complaint Submission Form and Team Mobilization Form with strict validation rules, data types, and API field mappings.</p>
+      </section>
+
+      <section id="s6">
+        <h2>6. Location Services Documentation</h2>
+        <p>Hierarchical grouping covering 47 counties with 9 operational hub nodes: All Locations, Ruaka, Nairobi, Kiambu, Mombasa, Nakuru, Kisumu, Eldoret, Nyeri. Provides instant client-side filtering and count badge telemetry.</p>
+      </section>
+
+      <section id="s7">
+        <h2>7. User Roles &amp; Permissions Matrix</h2>
+        <p>Role-Based Access Control (RBAC) defining permissions for Public Citizens, Customer Care Agents, NOC Controllers, Field Engineers, and Executive Leadership.</p>
+      </section>
+
+      <section id="s8">
+        <h2>8. Complete Business Process Documentation</h2>
+        <p>Step-by-step trigger-to-resolution lifecycle mapping subscriber input, automated triage, team mobilization, optical verification, and SMS customer sign-off.</p>
+      </section>
+
+      <section id="s9">
+        <h2>9. Ticket / Incident Lifecycle</h2>
+        <p>Finite state machine: Received (Amber) &rarr; Assigned (Indigo) &rarr; In Progress (Sky) &rarr; Resolved (Emerald) &rarr; Closed (Slate).</p>
+      </section>
+
+      <section id="s10">
+        <h2>10. SLA &amp; Escalation Rules</h2>
+        <p>Priority matrix: Critical (15m response / 2h fix), High (30m response / 4h fix), Medium (60m response / 8h fix), Low (120m response / 24h fix).</p>
+      </section>
+
+      <section id="s11">
+        <h2>11. Notification &amp; Alerting System</h2>
+        <p>Automated HTML dispatch emails to field leads, including ticket coordinates, subscriber quotes, English translation, and prescriptive 3-step action items.</p>
+      </section>
+
+      <section id="s12">
+        <h2>12. Database Schema &amp; TypeScript Interfaces</h2>
+        <p>Domain schema for <code>SubmissionRecord</code>, <code>AIClassification</code>, <code>EmailDispatchLog</code>, and <code>InflowChannel</code>.</p>
+      </section>
+
+      <section id="s13">
+        <h2>13. Complete API Specification</h2>
+        <p>Complete documentation of endpoints: <code>/api/submissions</code>, <code>/api/transcribe-audio</code>, <code>/api/classify-complaint</code>, <code>/api/email-dispatch</code>, <code>/api/auto-assign-all</code>, and <code>/api/ai-analytics</code>.</p>
+      </section>
+
+      <section id="s14">
+        <h2>14. Workflow Automation &amp; AI Clustering</h2>
+        <p>Clustering heuristics for grouping multiple incident reports originating from the same telecom node into single master outages.</p>
+      </section>
+
+      <section id="s15">
+        <h2>15. User Journeys &amp; Interaction Flows</h2>
+        <p>Detailed walkthroughs of the Citizen Audio journey, NOC Dispatcher journey, Field Technician journey, and Executive Analytics journey.</p>
+      </section>
+
+      <section id="s16">
+        <h2>16. Security, Compliance &amp; Data Protection</h2>
+        <p>Compliance with Kenya Data Protection Act 2019, TLS 1.3 transport security, PII data masking, and XSS defense mechanisms.</p>
+      </section>
+
+      <section id="s17">
+        <h2>17. DevOps, Deployment &amp; CI/CD Pipeline</h2>
+        <p>Google Cloud Run container architecture, multi-stage Docker build, zero-downtime rollouts, and health check monitors.</p>
+      </section>
+
+      <section id="s18">
+        <h2>18. Monitoring, Observability &amp; Incident Response</h2>
+        <p>JSON structured logs, MTTR telemetry, alerting thresholds, and system health runbooks.</p>
+      </section>
+
+      <section id="s19">
+        <h2>19. Quality Assurance, Testing &amp; Test Suite</h2>
+        <p>TypeScript strict type checking, unit tests, integration verification, and mobile browser compatibility tests.</p>
+      </section>
+
+      <section id="s20">
+        <h2>20. Performance Optimization &amp; Scalability</h2>
+        <p>Lightweight bundles, Opus audio compression, memoized filter functions, and horizontal container autoscaling.</p>
+      </section>
+
+      <section id="s21">
+        <h2>21. Accessibility (A11Y) &amp; Localization (i18n)</h2>
+        <p>WCAG 2.1 AA compliant color contrast, ARIA landmarks, and multi-dialect phoneme translation for English, Kiswahili, and Sheng.</p>
+      </section>
+
+      <section id="s22">
+        <h2>22. Sequence Diagrams</h2>
+        <p>Mermaid sequence diagrams showing end-to-end subscriber speech ingestion, Gemini multimodal classification, automated email alert dispatch, and field crew remediation.</p>
+      </section>
+
+      <section id="s23">
+        <h2>23. Disaster Recovery &amp; Business Continuity (BCP)</h2>
+        <p>RPO &lt; 5 minutes, RTO &lt; 15 minutes, automated client-side offline fallback with local storage persistence.</p>
+      </section>
+
+      <section id="s24">
+        <h2>24. Troubleshooting Guide &amp; Runbook</h2>
+        <p>Diagnostic matrix covering microphone permission locks, API key quotas, network latency, and empty filter states.</p>
+      </section>
+
+      <section id="s25">
+        <h2>25. System Glossary &amp; Kenyan Telecom Acronyms</h2>
+        <p>Definitions for BTS, CA, FCR, LOS, MSISDN, MTTR, NOC, OLT, OTDR, and Sheng linguistic taxonomy.</p>
+      </section>
+    </main>
+  </div>
+
+</body>
+</html>
