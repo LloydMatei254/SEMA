@@ -92,13 +92,34 @@ export const TechnicalDocumentationModal: React.FC<TechnicalDocumentationModalPr
             </button>
 
             <a
+              href="/SEMA-COMPLETE-SYSTEM-DOCUMENTATION.html"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
+              title="Open full 25-section HTML technical manual in new browser tab"
+            >
+              <ExternalLink className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Open Full HTML</span>
+            </a>
+
+            <a
+              href="/SEMA-COMPLETE-SYSTEM-DOCUMENTATION.html"
+              download="Safaricom-SEMA-Complete-System-Documentation.html"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-200 bg-slate-800 hover:bg-slate-700 hover:text-white border border-slate-700 rounded-lg transition-colors cursor-pointer whitespace-nowrap"
+              title="Download standalone complete HTML system documentation (76 KB)"
+            >
+              <Download className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Download HTML</span>
+            </a>
+
+            <a
               href={PDF_DOWNLOAD_URL}
               download="Safaricom-SEMA-Technical-Documentation.pdf"
               className="inline-flex items-center gap-2 px-3.5 py-1.5 text-xs font-bold text-emerald-950 bg-emerald-400 hover:bg-emerald-300 rounded-lg transition-colors shadow-sm cursor-pointer whitespace-nowrap"
-              title="Download full 8-page formatted PDF technical manual"
+              title="Download full formatted PDF technical manual"
             >
               <Download className="w-4 h-4 text-emerald-950" />
-              <span>Download PDF Manual</span>
+              <span>Download PDF</span>
             </a>
 
             <button
@@ -216,23 +237,33 @@ export const TechnicalDocumentationModal: React.FC<TechnicalDocumentationModalPr
                 </div>
               </div>
 
-              <div className="bg-emerald-950/30 border border-emerald-800/60 rounded-xl p-4 flex items-center justify-between gap-4">
+              <div className="bg-emerald-950/30 border border-emerald-800/60 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
                   <h5 className="font-semibold text-emerald-300 text-sm">
-                    Ready to download the complete PDF manual?
+                    Download Complete 25-Chapter Technical Manual
                   </h5>
                   <p className="text-xs text-emerald-200/80 mt-0.5">
-                    Includes all 8 chapters, code snippets, schemas, and diagrams in an offline-ready PDF.
+                    Includes all 25 chapters, architecture diagrams, sequence flows, database schemas, APIs, and operational SOPs.
                   </p>
                 </div>
-                <a
-                  href={PDF_DOWNLOAD_URL}
-                  download="Safaricom-SEMA-Technical-Documentation.pdf"
-                  className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-emerald-950 bg-emerald-400 hover:bg-emerald-300 rounded-lg transition-colors shrink-0"
-                >
-                  <Download className="w-4 h-4" />
-                  <span>Download PDF (60 KB)</span>
-                </a>
+                <div className="flex items-center gap-2.5 shrink-0">
+                  <a
+                    href="/SEMA-COMPLETE-SYSTEM-DOCUMENTATION.html"
+                    download="Safaricom-SEMA-Complete-System-Documentation.html"
+                    className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-slate-100 bg-slate-800 hover:bg-slate-700 border border-emerald-500/40 rounded-lg transition-colors shrink-0"
+                  >
+                    <Download className="w-4 h-4 text-emerald-400" />
+                    <span>Download Complete HTML (76 KB)</span>
+                  </a>
+                  <a
+                    href={PDF_DOWNLOAD_URL}
+                    download="Safaricom-SEMA-Technical-Documentation.pdf"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-emerald-950 bg-emerald-400 hover:bg-emerald-300 rounded-lg transition-colors shrink-0"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>Download PDF</span>
+                  </a>
+                </div>
               </div>
             </div>
           )}
